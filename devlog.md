@@ -1,4 +1,446 @@
 
+# TODO
+
+# Interesting Go stuff
+
+## Go reference date
+
+https://stackoverflow.com/questions/42217308/go-time-format-how-to-understand-meaning-of-2006-01-02-layout
+
+Like wtf seriously. I can't use something like %Y-%m-%d, I have to specifically use 2006/01/02 15:04:05 because it's 1 2 3 4 5 6 in the Posix date command
+Mon Jan 2 15:04:05 -0700 MST 2006
+0   1   2  3  4  5              6
+
+## Go toast
+
+```chatGPT
+go-toast is a Go library for creating Windows toast notifications. It allows you to send native Windows 10/11 notifications easily.
+
+Installation
+Run:
+
+sh
+Copy
+Edit
+go get github.com/go-toast/toast
+Usage
+Modify your lobby_open case:
+
+go
+Copy
+Edit
+import "github.com/go-toast/toast"
+
+func sendNotification(title, message string) {
+	notification := toast.Notification{
+		AppID:   "LoL Monitor",
+		Title:   title,
+		Message: message,
+	}
+	err := notification.Push()
+	if err != nil {
+		log.Printf("Failed to send notification: %v", err)
+	}
+}
+Then, call it in your code:
+
+go
+Copy
+Edit
+case "lobby_open":
+	log.Println("Lobby was opened")
+	if time.Now().Before(endOfBreak) {
+		log.Println("Attempting to close Lobby due to enforced break")
+		sendNotification("League of Legends Blocked", "You're on a break! Try again later.")
+		err := actions.CloseLeagueClient()
+		if err != nil {
+			log.Printf("Error: %v", err)
+		}
+	}
+```
+
+## using for loops on a range with channel
+
+Why doesn't for event := range gameEvents {} exit immediately?
+If gameEvents were a normal variable (not a channel), for event := range gameEvents {} would try to iterate over a finite set of values and exit when done.
+
+However, because gameEvents is a channel, the range loop will keep waiting for new values, processing them as they come.
+
+The loop only stops if the channel is closed (close(gameEvents)), which you currently do only when quit is received.
+
+## It's always time...
+
+time.Duration(15) * time.Minute
+This expression multiplies 15 nanoseconds by 60 billion, which gives you a time.Duration that represents 15 minutes worth of time in nanoseconds.
+
+## Passing by value vs pointer (reference)
+
+```chatGPT
+Passing by Value (config.Config)
+When you pass a struct by value, you are passing a copy of the struct. The function gets a local copy, so modifications inside the function won't affect the original struct.
+
+When to use passing by value:
+
+Small structs: If the struct is small (only a few fields), passing it by value is usually efficient because it doesn’t involve a lot of memory overhead.
+
+Immutability: If the function does not need to modify the original struct, passing by value is a good option. It ensures that the original struct remains unchanged, which can make reasoning about the program easier.
+
+Avoiding side effects: If you want to avoid any unintended side effects or mutations of the original object outside the function, passing by value is safer.
+
+Pros:
+
+Avoids modifying the original struct.
+
+Can be simpler to reason about in certain cases.
+
+No risk of accidental mutation or sharing state.
+
+Cons:
+
+If the struct is large, passing it by value could involve unnecessary memory copying, which may impact performance.
+
+Passing by Pointer (*config.Config)
+When you pass a struct by pointer, you are passing a reference to the original struct. This means that any changes made to the struct inside the function will affect the original struct.
+
+When to use passing by pointer:
+
+Large structs: If the struct is large, passing it by pointer is generally more efficient because it avoids copying the entire struct. You're just passing a reference (a pointer) to the struct instead of duplicating its entire content.
+
+Mutability: If the function needs to modify the struct’s fields (e.g., changing values inside cfg), passing by pointer is required because you're passing the address of the original struct, not a copy.
+
+Consistency with other functions: If you need to ensure consistency across your application by passing a reference to the same instance of the struct, using pointers ensures that changes in one part of your code will be reflected in others.
+
+Nil checks: If the struct is a complex object or contains expensive resources, passing by pointer can help avoid unnecessary copying while also providing an easy way to check if the struct is nil.
+
+Pros:
+
+More memory efficient for large structs.
+
+Allows for modification of the original struct.
+
+Reduces the overhead of copying large structs.
+
+Cons:
+
+Can lead to unintended side effects if not carefully managed.
+
+The function can modify the original struct, which might not always be desired.
+
+Decision Making
+Use by value when:
+
+You don't need to modify the original struct.
+
+The struct is small and passing by value is not performance-intensive.
+
+You want to avoid unintentional changes to the original struct.
+
+Use by pointer when:
+
+You need to modify the struct inside the function.
+
+The struct is large and passing by value would incur unnecessary overhead.
+
+You want all references to the struct to reflect changes made inside the function.
+
+Conclusion
+Since your config.Config is likely a configuration structure (potentially containing multiple fields that may be updated), and the function might need to read and modify it, passing by pointer is probably the better choice unless you're only accessing data without modification.
+
+For example:
+
+If EnforceBreak modifies cfg, pass by pointer.
+
+If cfg is large and you don’t want to copy it every time, pass by pointer.
+
+If you’re sure that the cfg struct will not be modified in EnforceBreak and is relatively small, passing by value would be simpler and safer.
+```
+
+and also
+
+```ChatGPT
+In Go, the & symbol is used to take the address of a variable or struct, meaning it creates a pointer to that variable or struct.
+
+In your example:
+
+go
+Copy
+Edit
+type Config struct {
+    DailyStartTime       string        `json:"dailyStartTime"`
+    DailyEndTime         string        `json:"dailyEndTime"`
+    BreakBetweenGames    time.Duration `json:"breakBetweenGames"`
+    BreakBetweenSessions time.Duration `json:"breakBetweenSessions"`
+    GamesPerSession      int           `json:"gamesPerSession"`
+    MinGameDuration      time.Duration `json:"minGameDuration"`
+}
+
+func LoadConfig(filename string) (*Config, error) {
+    file, err := os.Open(filename)
+    if err != nil {
+        fmt.Println("Config file not found, creating default config...")
+        saveDefaultConfig(filename)
+        return &defaultConfig, nil
+    }
+    // other logic
+}
+Explanation of & in &defaultConfig
+In this code:
+
+go
+Copy
+Edit
+return &defaultConfig, nil
+&defaultConfig creates a pointer to the defaultConfig struct, returning that pointer.
+
+The LoadConfig function is returning a pointer to a Config object, hence the return type is *Config, which means a pointer to Config.
+
+Why the & is used here:
+defaultConfig is most likely a variable of type Config, and when you use &defaultConfig, you are passing a pointer to defaultConfig, not the value itself. This is because the return type of LoadConfig is *Config (a pointer to Config).
+
+If you didn't use &, you would be returning the value of defaultConfig directly, which would not match the return type of *Config.
+
+When and why to use &
+When you want to return a pointer: If your function is supposed to return a pointer to an object (as in *Config), you need to use & to get the address of that object.
+
+When you want to avoid copying large structs: Passing a pointer allows you to work with the original struct, rather than making copies, which can be inefficient for large objects. If you pass a struct by value (without using &), the function works with a copy of the struct.
+
+When should you use &?
+When you need a pointer: If you're working with a function that expects a pointer (e.g., *Config), you need to use & to create the pointer from a value.
+
+When you want to modify the original data: If you want the function to modify the struct (or configuration, in this case), you pass a pointer (with &), so the function can modify the original object.
+
+In your example, LoadConfig is creating and returning a pointer to a Config object (either from a file or a default config). You would use & in return &defaultConfig to return the address of defaultConfig, not a copy of it.
+
+Summary:
+The & symbol creates a pointer to a variable.
+
+In the context of your LoadConfig function, it is used to return a pointer (*Config) to the caller.
+
+You use & when you need to return or pass a reference (pointer) to a variable or struct, rather than a copy of the value.
+
+If you're passing this pointer to another function that expects *Config, you're passing a reference to the original Config instance, and changes made to it will affect the original object.
+```
+
+## upper vs lowercase function names
+
+In Go, functions that start with a lowercase letter (e.g., getProcessID) are unexported, meaning they are private to the package they are defined in. If getProcessID is defined in detection/detector.go but is not exported (i.e., it starts with a lowercase letter), it cannot be accessed from another package like actions.
+
+## print functions
+
+```chatGPT
+Key Logging and Printing Functions in Go
+Command	Description/Purpose	Example
+fmt.Println	Prints a line to standard output (stdout).	fmt.Println("Hello, World!")
+fmt.Printf	Prints formatted text to stdout.	fmt.Printf("Value: %d\n", 42)
+fmt.Errorf	Creates an error with formatted text.	err := fmt.Errorf("failed: %s", "network issue")
+log.Println	Logs a message with a timestamp.	log.Println("Something happened")
+log.Printf	Logs formatted text with a timestamp.	log.Printf("Count: %d", 10)
+log.Fatal	Logs a message and exits the program.	log.Fatal("Critical failure")
+log.Fatalf	Logs formatted text and exits the program.	log.Fatalf("Error code: %d", 500)
+log.Panic	Logs a message and triggers a panic (use with caution).	log.Panic("Unexpected issue")
+log.Panicf	Logs formatted text and triggers a panic.	log.Panicf("Panic: %s", "bad state")
+errors.New	Creates a simple error message.	err := errors.New("something went wrong")
+errors.Is	Checks if an error matches a target error.	if errors.Is(err, io.EOF) { ... }
+errors.Unwrap	Extracts the underlying error from a wrapped error.	innerErr := errors.Unwrap(err)
+Logging and Printing Notes:
+Use fmt.Println / fmt.Printf for simple debugging but avoid them in production logs.
+
+Use log.Println / log.Printf for proper logging as they include timestamps.
+
+Use log.Fatal and log.Panic carefully since they terminate the program.
+
+Use fmt.Errorf and errors.New for creating errors, and handle them instead of printing.
+
+For structured logging in larger projects, consider using third-party libraries like logrus or zap.
+```
+
+Markdown version:
+
+| Command         | Description/Purpose                                       | Example |
+|----------------|-----------------------------------------------------------|---------|
+| `fmt.Println`  | Prints a line to standard output (stdout).                 | `fmt.Println("Hello, World!")` |
+| `fmt.Printf`   | Prints formatted text to stdout.                           | `fmt.Printf("Value: %d\n", 42)` |
+| `fmt.Errorf`   | Creates an error with formatted text.                      | `err := fmt.Errorf("failed: %s", "network issue")` |
+| `log.Println`  | Logs a message with a timestamp.                           | `log.Println("Something happened")` |
+| `log.Printf`   | Logs formatted text with a timestamp.                      | `log.Printf("Count: %d", 10)` |
+| `log.Fatal`    | Logs a message and exits the program.                      | `log.Fatal("Critical failure")` |
+| `log.Fatalf`   | Logs formatted text and exits the program.                 | `log.Fatalf("Error code: %d", 500)` |
+| `log.Panic`    | Logs a message and triggers a panic (use with caution).    | `log.Panic("Unexpected issue")` |
+| `log.Panicf`   | Logs formatted text and triggers a panic.                  | `log.Panicf("Panic: %s", "bad state")` |
+| `errors.New`   | Creates a simple error message.                            | `err := errors.New("something went wrong")` |
+| `errors.Is`    | Checks if an error matches a target error.                 | `if errors.Is(err, io.EOF) { ... }` |
+| `errors.Unwrap`| Extracts the underlying error from a wrapped error.        | `innerErr := errors.Unwrap(err)` |
+
+- **Use `fmt.Println` / `fmt.Printf` for simple debugging** but avoid them in production logs.
+- **Use `log.Println` / `log.Printf` for proper logging** as they include timestamps.
+- **Use `log.Fatal` and `log.Panic` carefully** since they terminate the program.
+- **Use `fmt.Errorf` and `errors.New` for creating errors**, and handle them instead of printing.
+- **For structured logging in larger projects**, consider using third-party libraries like [`logrus`](https://github.com/sirupsen/logrus) or [`zap`](https://github.com/uber-go/zap).
+
+log.Println("Something happened")
+log.Printf("Count: %d", 10)
+log.Fatal("Critical failure")
+err := fmt.Errorf("failed: %s", "network issue")
+
+
+```chatGPT
+
+1. log.Printf:
+Purpose: Used for logging messages, often with a timestamp and log level.
+
+Usage: Outputs formatted text to the log, including additional context (e.g., timestamp).
+
+Example:
+
+go
+Copy
+Edit
+log.Printf("User %s has logged in at %v", username, time.Now())
+Key Characteristics:
+
+Automatically includes a timestamp when logging.
+
+Outputs to stderr by default.
+
+Intended for general logging, especially in production code.
+
+Can be configured for different logging levels and output formats (e.g., to a file).
+
+2. fmt.Errorf:
+Purpose: Used for creating formatted error messages.
+
+Usage: Returns an error with a formatted message.
+
+Example:
+
+go
+Copy
+Edit
+err := fmt.Errorf("failed to open file: %s", filename)
+return err
+Key Characteristics:
+
+Returns an error type, so it’s useful for creating new error instances.
+
+Often used to provide a more detailed message when an error occurs.
+
+Does not print anything by itself (it simply returns an error object that can be logged or handled).
+
+3. fmt.Sprintf:
+Purpose: Used to format a string and return it without printing or logging it.
+
+Usage: Returns a formatted string.
+
+Example:
+
+go
+Copy
+Edit
+formattedString := fmt.Sprintf("User %s has %d points", username, points)
+Key Characteristics:
+
+Returns a string that can be stored or passed around in your program.
+
+It doesn’t print anything by itself; you must explicitly print or log the result (e.g., using fmt.Println or log.Printf).
+
+Commonly used to create strings that need to be printed, logged, or further processed.
+
+Commonly Used Functions for Logging, Formatting, and Error Handling:
+Here’s a list of other commonly used functions with similar behavior:
+
+4. fmt.Println:
+Purpose: Prints a formatted string to the standard output (stdout) followed by a newline.
+
+Usage: Used for general output (e.g., debugging or showing results).
+
+Example:
+
+go
+Copy
+Edit
+fmt.Println("Hello, world!")
+5. fmt.Print:
+Purpose: Prints a formatted string to the standard output without a newline at the end.
+
+Usage: Useful when you want to print text without an automatic newline.
+
+Example:
+
+go
+Copy
+Edit
+fmt.Print("Hello ")
+fmt.Print("World!")
+6. log.Fatal:
+Purpose: Logs a message and then terminates the program with a non-zero exit status.
+
+Usage: Used for critical errors where the program cannot continue running.
+
+Example:
+
+go
+Copy
+Edit
+if err != nil {
+    log.Fatal("Failed to connect to the database:", err)
+}
+Key Characteristics:
+
+Like log.Printf, but it exits the program after logging the message.
+
+7. log.Panic:
+Purpose: Logs a message and then causes the program to panic (similar to throwing an exception).
+
+Usage: Used for situations where the program is in an irrecoverable state.
+
+Example:
+
+go
+Copy
+Edit
+if err != nil {
+    log.Panic("Unexpected error occurred:", err)
+}
+Key Characteristics:
+
+Similar to log.Fatal, but it allows recovery (if deferred functions handle the panic).
+
+8. fmt.Scan / fmt.Scanln:
+Purpose: Reads input from standard input (stdin) and parses it into variables.
+
+Usage: Useful for reading user input.
+
+Example:
+
+go
+Copy
+Edit
+var name string
+fmt.Scanln(&name)
+9. fmt.Sscanf:
+Purpose: Reads formatted input from a string.
+
+Usage: Similar to fmt.Scan, but it operates on a string instead of stdin.
+
+Example:
+
+go
+Copy
+Edit
+var name string
+fmt.Sscanf("John 25", "%s %d", &name, &age)
+10. log.Println:
+Purpose: Similar to log.Printf, but appends a newline automatically after logging the message.
+
+Usage: Used for logging simple messages with automatic newlines.
+
+Example:
+
+go
+Copy
+Edit
+log.Println("User logged in successfully")
+```
 
 # Initial brainstorming session with ChatGPT (abridged)
 
@@ -904,4 +1346,22 @@ go get github.com/StackExchange/wmi
 Explanation:
 go mod tidy: Cleans up your go.mod and go.sum files by removing unused dependencies and adding any missing ones.
 go get: Adds the specified dependency to your project and updates the go.mod and go.sum files.
+```
+
+A critical thing happened at this point
+* Copilot started having issues, with insertions happening at the wrong spot and code changes that didn't make sense, strongly reminiscent of when you ask ChatGPT for advice and at some point you realise it just doesn't understand
+* I was able to get my detection working, but this involved 
+  * reviewing some of the code in the wmi package docstrings and codebase in github and asking questions of ChatGPT to properly understand things
+  * simplifying things down, removing some of the artifacts of the back-and-forth I'd been doing with Copilot (e.g. removing automated tests with simulated processes and just having a manual test which once working was probably sufficient for me)
+  * writing my own code in Go (see below) that displayed all the new windows being created, as one of the window names wasn't correct
+  * using my deductive skills and then working with Copilot/ChatGPT to implement go routines so as to test for the game window opening while the lobby window was open (as the original code was blocking, waiting for the lobby to close)
+* I realised that as good as it is to have ChatGPT/Copilot there making things quicker for me, there's still a lot to be said for using it as a tool to gain understanding and then using your understanding to solve problems, rather than relying on it to solve all your problems for you
+
+```go
+// Flag new processes (useful for confirming window names)
+for _, process := range processes {
+    if !activeWindows[process.Name] {
+        log.Printf("New process detected: %s", process.Name)
+    }
+}
 ```

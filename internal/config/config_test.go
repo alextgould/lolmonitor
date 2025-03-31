@@ -12,10 +12,10 @@ func TestLoadConfig(t *testing.T) {
 	configContent := `{
 		"dailyStartTime": "04:00",
 		"dailyEndTime": "22:00",
-		"breakBetweenGames": "00:15",
-		"breakBetweenSessions": "01:00",
+		"breakBetweenGamesMinutes": 15,
+		"breakBetweenSessionsMinutes": 60,
 		"gamesPerSession": 3,
-		"minGameDuration": "00:15"
+		"minimumGameDurationMinutes": 15"
 	}`
 
 	tempFile := "test_config.json"

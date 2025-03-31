@@ -1,0 +1,8 @@
+{
+  "dailyStartTime": "00:00",
+  "dailyEndTime": "23:59",
+  "breakBetweenGamesMinutes": 1,
+  "breakBetweenSessionsMinutes": 5,
+  "gamesPerSession": 2,
+  "minimumGameDurationMinutes": 1
+}
