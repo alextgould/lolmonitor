@@ -1,4 +1,4 @@
-// internal/config/config.go
+// load the config file, or create it if it's missing
 package config
 
 import (
@@ -29,7 +29,7 @@ func LoadConfig(filename string) (Config, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		fmt.Println("Config file not found, creating default config...")
-		saveDefaultConfig(filename)
+		createDefaultConfig(filename)
 		return defaultConfig, nil
 	}
 	defer file.Close()
@@ -39,14 +39,14 @@ func LoadConfig(filename string) (Config, error) {
 	err = decoder.Decode(&config)
 	if err != nil {
 		fmt.Println("Invalid config file, resetting to default values...")
-		saveDefaultConfig(filename)
+		createDefaultConfig(filename)
 		return defaultConfig, nil
 	}
 
 	return config, nil
 }
 
-func saveDefaultConfig(filename string) {
+func createDefaultConfig(filename string) {
 	file, err := os.Create(filename)
 	if err != nil {
 		fmt.Println("Failed to create default config file:", err)

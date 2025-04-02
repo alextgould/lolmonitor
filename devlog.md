@@ -1,7 +1,714 @@
 
 # TODO
 
+* consider [this post](https://medium.com/@benbjohnson/standard-package-layout-7cdbc8391fc1) idea about organising packages by dependency... I think I'm sort of doing this naturally
+
+probably better to go with [the docs](https://go.dev/doc/modules/layout) opinion on this
+
 # Interesting Go stuff
+
+## Generating the icon
+
+* Used leonardo.ai to generate a version of the League of Legends logo with 3 boxes around it (nod to the three block process)
+* Used random website to convert .jpg to .ico
+* Used rsrc to generate .syso file
+* did not work
+* Found Python script that uses PIL to generate .icon ensuring all the different sizes, useful tool for future
+* rebuild with 
+rsrc -ico assets/lolmonitor.ico -o cmd/lolmonitor/lolmonitor.syso
+go build -o build/lolmonitor.exe cmd/lolmonitor/main.go
+* did not work
+* downhload resourcehacker from https://www.angusj.com/resourcehacker/ to inspect the exe and see if icon is present under ICON or GROUP_ICON section
+
+* consider trying this instead
+https://github.com/josephspurrier/goversioninfo?tab=readme-ov-file
+
+```chatGPT
+
+Adding an Icon to the Executable
+Go does not natively support embedding icons into .exe files, but you can achieve this using a .syso resource file.
+
+Steps:
+Create an .ico file
+You need a .ico file for your application. You can create one online or use an image editor like GIMP.
+
+Generate a .syso file
+Use rsrc to embed the icon:
+
+Install rsrc (if not installed):
+
+sh
+Copy
+Edit
+go install github.com/akavel/rsrc@latest
+Generate a .syso file:
+
+sh
+Copy
+Edit
+rsrc -ico youricon.ico -o icon.syso
+Place icon.syso in the same directory as main.go or in the root directory of your Go module.
+
+Rebuild your executable
+
+sh
+Copy
+Edit
+go build -o lolmonitor.exe cmd/lolmonitor/main.go
+Now lolmonitor.exe will have the icon.
+
+```
+
+## Project organisation
+
+```chatGPT
+I am relatively new to Go and I'm doing a refactor of my first project. I'm learning as I go with an emphasis on adopting good/best practices from the outset, but without wanting to read all the docs, blog posts etc.
+
+I read this post, which is now 9 years old: https://medium.com/@benbjohnson/standard-package-layout-7cdbc8391fc1
+
+It seems to suggest a few interesting things in terms of organising your Go projects, which if I understand correctly are:
+- having packages organised generally in folders by dependency, with multiple .go and _test.go files for different modules 
+- declaring structs in the main program but using them in the modules
+- having a mock system which creates dummy versions of the structs for _test.go files to use
+
+I have a few questions for you to help me with:
+1. Is my understanding of the post correct? Any issues with my terminology so far? e.g. I'm using packages and modules without necessarily knowing exactly what I'm talking about
+2. Is this approach still a good one for me to use, or have things evolved in the past 9 years? 
+3. Even if I do decide to broadly adopt this approach, what are some potential things I might need to be aware of? For example, I was thinking about "what happens if I have a venn diagram style series of modules, where I have a module that uses dependency A, a module that uses dependency B, and a module that uses both dependency A and B? Do I put all three into the same package or into different packages?
+4. I'm still a little unsure of how the mock system works. Would this be a package with a single file that declares a bunch of mock versions of structs in the same way that the main.go program will declare the real version of structs?
+5. If I have modA and modB as .go files in the folder libA, and I have modA and modB _test.go files in that directory, confirm if I can run the _test.go files separately?
+
+For reference, my folder structure currently looks like this
+├── .gitignore
+├── LICENSE
+├── README.md
+├── assets
+│   ├── lolmonitor.ico     
+│   └── lolmonitor.jpg     
+├── build
+├── cmd
+│   └── lolmonitor
+│       ├── lolmonitor.syso
+│       └── main.go        
+├── config.json
+├── devlog.md
+├── go.mod
+├── go.sum
+├── internal
+│   ├── config
+│   │   ├── config.go
+│   │   └── config_test.go
+│   ├── loadOnStartup
+│   ├── notifications
+│   │   ├── toast.go
+│   │   └── toast_test.go
+│   ├── windowClose
+│   │   ├── terminator.go
+│   │   └── terminator_test.go
+│   └── windowDetect
+│       ├── detector.go
+│       └── detector_test.go
+└── scripts
+
+I'm thinking of 
+* combining windowClose and windowDetect into a window package as both of these import "github.com/StackExchange/wmi"
+* renaming terminator to close to have window.close and detector to detect so I have window.detect
+* renaming loadOnStartup to use a short single word such as startup
+* removing the scripts folder, I don't think I'll be using it
+* adding a mock package if it makes sense to do so
+
+6. Any other suggestions for my folder structure?
+
+7. Explain the difference between import and install?
+
+My main.go package looks like this:
+
+// To run (in terminal, at project root): go run cmd/lolmonitor/main.go
+// To build: go build -o lolmonitor.exe -ldflags "-H windowsgui" cmd/lolmonitor/main.go
+// -ldflags "-H windowsgui"   -- hides the terminal
+package main
+
+import (
+	"fmt"
+	"log"
+	"math"
+	"os"
+	"os/signal"
+	"time"
+
+	"github.com/go-toast/toast"
+
+	"github.com/alextgould/lolmonitor/internal/config"
+	actions "github.com/alextgould/lolmonitor/internal/windowClose"
+	detection "github.com/alextgould/lolmonitor/internal/windowDetect"
+)
+
+func main() {
+	// Load configuration
+	cfg, err := config.LoadConfig("config.json")
+	if err != nil {
+		log.Panicf("Failed to load config: %v", err)
+	}
+
+	// Start window monitoring
+	log.Println("Starting lolmonitor")
+	gameEvents := make(chan detection.GameEvent, 10) // Buffered channel to prevent blocking
+	quit := make(chan struct{})
+	go detection.StartMonitoring(gameEvents, quit)
+
+	// Handle Ctrl+C for graceful shutdown
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt)
+	go func() {
+		<-signalChan
+		log.Println("Shutting down lolmonitor")
+		close(quit) // Signal monitoring to stop
+		os.Exit(0)
+	}()
+
+	var gameStartTime time.Time
+	var gameEndTime time.Time
+	var gameDuration time.Duration
+	var breakDuration time.Duration
+	var endOfBreak time.Time
+	var sessionGames int
+
+	for event := range gameEvents { // will process events as they are added to the gameEvents channel by the StartMonitoring goroutine, which runs constantly
+		switch event.Type { // type of event (lobby_open, lobby_close, game_open, game_close)
+		case "game_open": // note the game start time, so we can check for remakes
+			log.Println("Game started")
+			gameStartTime = event.Timestamp
+
+		case "game_close": // check for remakes, increment game counter
+			log.Println("Game ended")
+			gameEndTime = event.Timestamp
+			gameDuration = gameEndTime.Sub(gameStartTime)
+			if gameDuration < time.Duration(cfg.MinimumGameDurationMinutes)*time.Minute {
+				log.Println("Game was too short, likely a remake.")
+				continue
+			}
+			sessionGames++
+			log.Printf("Games played this session: %d of %d", sessionGames, cfg.GamesPerSession)
+			if sessionGames >= cfg.GamesPerSession && cfg.GamesPerSession != 0 { // use 0 to disable GamesPerSession functionality
+				sessionGames = 0
+				breakDuration = time.Duration(cfg.BreakBetweenSessionsMinutes) * time.Minute
+				log.Printf("Enforcing a session ban of %v minutes", cfg.BreakBetweenSessionsMinutes)
+			} else {
+				breakDuration = time.Duration(cfg.BreakBetweenGamesMinutes) * time.Minute
+				log.Printf("Enforcing a game ban of %v minutes", cfg.BreakBetweenGamesMinutes)
+			}
+			endOfBreak = gameEndTime.Add(breakDuration)
+
+			// always close the lobby after a game, unless breakDuration is 0
+			if breakDuration > 0 {
+
+				log.Printf("Closing the lobby. Break will expire at: %v", endOfBreak.Format("2006/01/02 15:04:05"))
+
+				err := actions.CloseLeagueClient()
+				if err != nil {
+					log.Printf("Error: %v", err)
+				}
+
+				notification_text := fmt.Sprintf("GG. Take a break and come back in %.0f minutes at %v",
+					math.Ceil(time.Until(endOfBreak).Minutes()),
+					endOfBreak.Format("3:04pm"))
+				sendNotification("League of Legends Lobby Closed", notification_text)
+			}
+
+		case "lobby_open": // check if we are in a break, if so, close the lobby and inform the user
+			log.Println("Lobby was opened")
+			if time.Now().Before(endOfBreak) {
+
+				log.Println("Closing the lobby, which was opened during an enforced break.")
+
+				err := actions.CloseLeagueClient()
+				if err != nil {
+					log.Printf("Error: %v", err)
+				}
+
+				notification_text := fmt.Sprintf("You're on a break! Try again in %.0f minutes at %v",
+					math.Ceil(time.Until(endOfBreak).Minutes()),
+					endOfBreak.Format("3:04pm"))
+				sendNotification("League of Legends Blocked", notification_text)
+			}
+
+		case "lobby_close": // will happen when we close the lobby, or when the user closes the lobby, either way ignore
+			continue
+
+		default: // should never occur
+			log.Panicf("Unknown event type: %v", event.Type)
+		}
+	}
+}
+
+func sendNotification(title, message string) {
+	notification := toast.Notification{
+		AppID:   "LoL Monitor",
+		Title:   title,
+		Message: message,
+	}
+	err := notification.Push()
+	if err != nil {
+		log.Printf("Failed to send notification: %v", err)
+	}
+}
+
+Broadly, the program monitors for certain game windows appearing and force closes them under certain conditions, based on the number of games played in a row etc. In addition to moving the notifications logic into the toast.go folder (which I've already done, I just need to remove it from the main.go file), I'm thinking I should add another package in internal that handles some of the logic I currently have in main.go, so I can test it properly. I think this would allow me to pass dummy times for checking time of day restrictions (not currently implemented) as well as create dummy events (game open, game close, lobby open etc) to test the logic. Am I on the right track with my thinking?
+
+Any other thoughts or tips before I start my refactoring exercise?
+
+
+
+
+ChatGPT said:
+Thought for a second
+Below is an overview addressing each of your questions, along with some clarifications and suggestions:
+
+1. Understanding the Post & Terminology
+Your summary is largely correct. Just to clarify:
+
+Packages vs. Modules:
+In Go, a package is a collection of Go files in the same directory that share the same package name. A module is a collection of related packages defined by a go.mod file and used for versioning and dependency management. Ben’s post (see 
+MEDIUM.COM
+) sometimes uses these terms loosely. It’s good to know the precise definitions as you progress.
+
+Mocking:
+The post suggests using a separate mock package to provide dummy implementations for testing. That concept is sound and aligns with dependency injection principles.
+
+2. Relevance of the Approach After 9 Years
+The overall approach remains useful today. However, some things have evolved:
+
+Go Modules: Now, modules are the standard for dependency management, which simplifies project organization.
+
+Community Practices: Many developers now also consider domain-driven and layered architectures (see also the updated discussions on GitHub and various blog posts).
+
+Testing & Mocks: There are more tools (like GoMock and Testify) that can simplify your mocking, but the core idea of isolating business logic remains the same.
+
+3. Handling Overlapping Dependencies
+If you have components that use different sets of dependencies—say, one uses dependency A, another uses dependency B, and a third uses both—you have a couple of options:
+
+Separate Packages:
+You can keep them in separate packages if they represent distinct concerns. For shared functionality (when both A and B are needed), you might create a third package that acts as an adapter or aggregator.
+
+Avoiding Circular Dependencies:
+Use dependency injection to break potential cycles. Extract common interfaces or helper functions into their own package so that modules remain decoupled.
+
+4. How the Mock System Works
+Yes, you’re on the right track. Typically, you’d:
+
+Define Interfaces:
+Design your code so that it depends on interfaces rather than concrete types.
+
+Create Mocks:
+Write (or generate) mock implementations—often placed in a separate package (e.g. internal/mocks or a similar name). These mocks usually mirror the real implementations but let you control their behavior in tests.
+Tools like GoMock can automate this, but writing simple mocks yourself is perfectly fine.
+
+5. Running _test.go Files Separately
+If you have files like modA.go, modB.go and their corresponding _test.go files in the same folder (e.g. in your libA directory), you can run tests for that package with:
+
+bash
+Copy
+Edit
+go test ./libA
+All _test.go files in that package are compiled and run together. You can also run tests for specific files if needed by providing the file name, but generally, running go test on the package is standard practice.
+
+6. Additional Suggestions for Your Folder Structure
+Your current structure is quite good. A few additional thoughts:
+
+Combining Related Packages:
+If windowClose and windowDetect both import the same external dependency (e.g. "github.com/StackExchange/wmi"), merging them into a single package (e.g. window) can reduce duplication. Then you can expose methods like window.Close() and window.Detect().
+
+Naming:
+Renaming for clarity (e.g. using shorter names like startup instead of loadOnStartup) is a good idea. It makes your API easier to use.
+
+Mocks:
+Consider adding a dedicated mocks package (perhaps under internal/mocks) for all your interfaces. This keeps test doubles separate from production code.
+
+General Layout:
+The overall layout (with cmd for the main binary and internal for business logic) aligns well with community best practices. You might also consider creating a pkg directory if you ever want to expose reusable packages to other projects.
+
+7. Difference Between Import and Install
+Import:
+The import statement in Go code is used to include packages. It tells the compiler where to find the code you wish to use. For example, when you write import "github.com/alextgould/lolmonitor/internal/config", you’re including that package into your current file.
+
+Install:
+Running go install compiles your Go program and installs the resulting binary into your $GOBIN (or $GOPATH/bin). It’s a build step to produce an executable that you can run, rather than a directive inside your source code.
+
+Refactoring Your Main Logic
+Your idea of moving the core game logic out of main.go into its own package (within internal) is a very good one. This will help you:
+
+Test Business Logic Independently:
+You can pass in dummy times and simulate game events to verify that your logic behaves as expected.
+
+Improve Code Organization:
+It decouples the logic from the environment-specific setup (like signal handling) and makes your application easier to maintain and extend.
+
+By considering these points and gradually refactoring, you'll be following a robust, testable, and maintainable design pattern in Go. If you have more questions or need further clarification on any point, feel free to ask!
+
+Happy coding!
+
+
+
+
+
+
+
+You said:
+Thanks. I do need further clarification on a few things:
+
+1. if a module is the project level, and the package is the internal subfolder level, what do you call the individual .go files within a package folder?
+
+2. Provide more details on the "domain-driven" and layered architectures?
+
+3. Provide more details on tools such as GoMock and Testify? Is it worth me looking into these as a beginner/hobbyist or are these more designed for large software production environments?
+
+4. How do you define "distinct concerns"? For example, if I have a package with detect.go and close.go, both of which use WMI for monitoring of windows, but one file is concerned with detecting windows and the other is concerned with closing them, am I on the right track?
+
+5. Tell me more about interfaces. Are these a Go data type? Give an example based on my desire to simulate Win32Process related events, where currently I define a struct like so
+
+type Win32_Process struct {
+	Name      string
+	ProcessId uint32
+}
+
+and then use it in a function like this
+
+// get the Process ID of the League Lobby window from its name
+func getLobbyPID() (uint32, error) {
+	var processes []Win32_Process
+	query := fmt.Sprintf("SELECT Name, ProcessId FROM Win32_Process WHERE Name = '%s'", detection.LOBBY_WINDOW_NAME)
+
+	// Retry loop with 5-second delay
+	for {
+		err := wmi.Query(query, &processes)
+		if err == nil {
+			if len(processes) > 0 {
+				return processes[0].ProcessId, nil
+			}
+			return 0, fmt.Errorf("lobby window not found")
+		}
+		log.Printf("WMI query failed: %v", err)
+		time.Sleep(5 * time.Second) // Delay before retrying
+	}
+}
+
+within the close.go (currently terminator.go) program. What would this look like using an interface? Clarify what would be in the internal/mocks file, what would be in the close.go file, and what would be in the main.go file if relevant.
+
+6. if I was using a pkg directory, would this mean I move things out of internal and/or rename functions to start with an uppercase letter? I don't think I want to do this, but would an example of this be, for me to create a general package that is able to detect/close windows by name, which seems like a useful reusable component, then my internal file would pick up the function from the pkg folder and use it with specific parameters for my current project?
+
+
+ChatGPT said:
+Certainly! Let's delve into each of your questions:
+
+1. Naming Conventions for .go Files Within a Package
+In Go, while there's no strict rule for naming individual .go files within a package, common conventions include:
+
+Lowercase Letters: Use all lowercase letters in filenames.
+
+Underscores for Separation: Separate multiple words with underscores for clarity.
+
+For example, if you have a package handling user authentication, your files might be named:
+
+login_handler.go
+
+session_manager.go
+
+This approach enhances readability and aligns with community practices.
+
+2. Domain-Driven and Layered Architectures
+Domain-Driven Design (DDD):
+
+DDD focuses on modeling software based on the real-world domain it's intended to represent. Key concepts include:
+
+Entities: Objects with a distinct identity, persisting over time.
+
+Value Objects: Objects defined by their attributes, without a unique identity.
+
+Aggregates: Groups of related entities and value objects treated as a single unit.
+
+Repositories: Interfaces for accessing domain objects, encapsulating data retrieval and storage.
+
+Layered Architecture:
+
+This design pattern organizes code into layers, each with a specific responsibility:
+
+Presentation Layer: Handles user interfaces and communication.
+
+Application Layer: Coordinates application-specific operations and workflows.
+
+Domain Layer: Contains business logic and domain models.
+
+Infrastructure Layer: Manages technical concerns like data access and external integrations.
+
+Combining DDD with layered architecture can lead to a well-structured, maintainable codebase that mirrors real-world domains.
+
+3. Overview of GoMock and Testify
+GoMock:
+
+GoMock is a robust mocking framework for Go, integrating seamlessly with Go's testing package. It allows for:
+
+Mock Generation: Uses the mockgen tool to generate mock implementations of interfaces.
+
+Expectation Setting: Define expected method calls and their return values.
+
+Call Order Verification: Assert the order of function calls to ensure correct interactions.
+
+Testify:
+
+Testify is a comprehensive toolkit offering:
+
+Assertions Package: Simplifies common assertions in tests.
+
+Mock Package: Facilitates the creation of mock objects without code generation.
+
+Suite Package: Provides a structure for organizing tests.
+
+Suitability for Beginners:
+
+For hobbyist projects, Testify might be more approachable due to its simplicity and lack of required code generation. GoMock offers more advanced features, which can be beneficial as your projects grow in complexity.
+
+4. Defining "Distinct Concerns" in Package Design
+In Go, a package should encapsulate a single, well-defined responsibility. If detect.go and close.go both utilize WMI for window monitoring but serve different purposes (detection vs. closing), consider:
+
+Single Package: If both files contribute to a unified concept of window management, placing them in a single package like window is appropriate.
+
+Separate Packages: If detection and closing are distinct operations with minimal overlap, separating them into windowdetect and windowclose packages can enhance modularity.
+
+The goal is to group related functionalities while maintaining clear boundaries between different concerns.
+
+5. Understanding Interfaces in Go
+Interfaces:
+
+In Go, an interface is a type that specifies a set of method signatures. Any type implementing these methods satisfies the interface, promoting flexibility and decoupling in your code.
+
+Refactoring with Interfaces:
+
+Given your Win32_Process struct and getLobbyPID function, you can introduce an interface to abstract the process querying behavior:
+
+go
+Copy
+Edit
+// Define the interface
+type ProcessQuery interface {
+    QueryProcesses(query string) ([]Win32_Process, error)
+}
+
+// Implement the interface
+type WMIProcessQuery struct{}
+
+func (WMIProcessQuery) QueryProcesses(query string) ([]Win32_Process, error) {
+    var processes []Win32_Process
+    err := wmi.Query(query, &processes)
+    return processes, err
+}
+
+// Modify the function to use the interface
+func getLobbyPID(pq ProcessQuery) (uint32, error) {
+    query := fmt.Sprintf("SELECT Name, ProcessId FROM Win32_Process WHERE Name = '%s'", detection.LOBBY_WINDOW_NAME)
+
+    for {
+        processes, err := pq.QueryProcesses(query)
+        if err == nil {
+            if len(processes) > 0 {
+                return processes[0].ProcessId, nil
+            }
+            return 0, fmt.Errorf("lobby window not found")
+        }
+        log.Printf("Process query failed: %v", err)
+        time.Sleep(5 * time.Second)
+    }
+}
+File Organization:
+
+internal/mocks/process_query_mock.go: Contains mock implementations of the ProcessQuery interface for testing purposes.
+
+close.go: Implements the WMIProcessQuery and utilizes getLobbyPID with this implementation.
+
+main.go: Initializes necessary components and orchestrates the application's workflow.
+
+This structure enhances testability by allowing you to inject mock implementations during testing, ensuring your logic is correctly validated.
+
+6. Utilizing the pkg Directory
+The pkg directory is typically used for code intended to be imported by other projects or for components shared across multiple internal applications. If you have functionalities like detecting or closing windows that could be reused, placing them in pkg makes sense.
+
+Exporting Functions:
+
+In Go, a function or type is exported (i.e., accessible from other packages) if its name starts with an uppercase letter. For example:
+
+go
+Copy
+Edit
+// In pkg/window/window.go
+package window
+
+func DetectWindow(name string) (Window, error) {
+    // Implementation
+}
+Internal Usage:
+
+Your internal packages can then import and utilize these exported functions:
+
+go
+Copy
+Edit
+// In internal/yourapp/yourfile.go
+package yourapp
+
+import "yourproject/pkg/window"
+
+func someFunction() {
+    win, err := window.DetectWindow("example")
+    // Use win and handle err
+}
+This approach promotes code reuse and maintains a clear separation between shared utilities and application-specific logic.
+
+By adhering to these practices and structures, you can create a Go project that is organized, maintainable, and scalable. If you have further questions or need additional clarification, feel free to ask!
+
+
+
+
+Sources
+
+
+
+
+
+
+You said:
+For point 1, I was asking not about naming conventions, but what the terminology is to describe individual .go files within a package folder. I can't call them modules or packages, should I call them scripts or programs or something else?
+
+For point 2, confirm you would combine DDD and layered architecture via subfolders within the internal directory? what would this look like? e.g. would you have a presentation folder, and another folder called application? does the application layer refer to the domain layer folder files?
+
+For point 5, it seems like the interface is abstracting away the wmi.Query process, which would be useful if I wanted to substitute a different query method? I was actually thinking we would use it to abstract away the Win32_Process struct, so I could obtain Win32_Process from wmi.Query but could also generate "dummy" Win32_Process objects for testing purposes?
+
+
+ChatGPT said:
+Certainly! Let's address each of your questions in detail:
+
+1. Terminology for Individual .go Files Within a Package
+In Go, individual .go files within a package don't have a specific terminology beyond being referred to as "source files" or "Go source files." Each file contributes to the overall functionality of the package. The key point is that all these files share the same package declaration at the top, indicating they belong to the same package. For example:
+
+go
+Copy
+Edit
+// In file1.go
+package mypackage
+
+// In file2.go
+package mypackage
+Both file1.go and file2.go are source files that collectively define the mypackage package.
+
+2. Combining Domain-Driven Design (DDD) and Layered Architecture in Go Project Structure
+Integrating DDD with a layered architecture in a Go project typically involves organizing your internal directory into subdirectories that represent different layers and domains of your application. Here's a common approach:
+
+csharp
+Copy
+Edit
+/internal
+├── /app
+│   ├── /interfaces    // Presentation Layer: Handles HTTP requests, CLI, etc.
+│   ├── /application   // Application Layer: Orchestrates use cases and workflows
+│   ├── /domain        // Domain Layer: Contains business logic, entities, and interfaces
+│   └── /infrastructure// Infrastructure Layer: Data access, external services, etc.
+└── /mocks             // Mock implementations for testing
+Presentation Layer (interfaces): Manages user interactions and translates them into application actions.
+
+Application Layer (application): Defines the application's use cases and coordinates between the presentation and domain layers.
+
+Domain Layer (domain): Contains the core business logic, entities, value objects, and domain services.
+
+Infrastructure Layer (infrastructure): Implements technical details like data persistence, external API calls, and other infrastructure concerns.
+
+This structure promotes separation of concerns and aligns with DDD principles by clearly delineating between different aspects of your application.
+
+5. Using Interfaces to Abstract Win32_Process for Testing
+You're correct that interfaces can be used to abstract the Win32_Process struct, allowing you to create dummy data for testing purposes. Here's how you can achieve this:
+
+Define an Interface for Process Retrieval:
+
+go
+Copy
+Edit
+// ProcessRetriever defines methods to retrieve process information.
+type ProcessRetriever interface {
+    GetProcessesByName(name string) ([]Win32_Process, error)
+}
+Implement the Interface Using WMI:
+
+go
+Copy
+Edit
+// WMIProcessRetriever retrieves processes using WMI queries.
+type WMIProcessRetriever struct{}
+
+func (w WMIProcessRetriever) GetProcessesByName(name string) ([]Win32_Process, error) {
+    var processes []Win32_Process
+    query := fmt.Sprintf("SELECT Name, ProcessId FROM Win32_Process WHERE Name = '%s'", name)
+    err := wmi.Query(query, &processes)
+    return processes, err
+}
+Modify Your Function to Use the Interface:
+
+go
+Copy
+Edit
+func getLobbyPID(pr ProcessRetriever) (uint32, error) {
+    processes, err := pr.GetProcessesByName(detection.LOBBY_WINDOW_NAME)
+    if err != nil {
+        return 0, fmt.Errorf("failed to retrieve processes: %v", err)
+    }
+    if len(processes) == 0 {
+        return 0, fmt.Errorf("lobby window not found")
+    }
+    return processes[0].ProcessId, nil
+}
+Create a Mock Implementation for Testing:
+
+In your internal/mocks directory:
+
+go
+Copy
+Edit
+// MockProcessRetriever is a mock implementation of ProcessRetriever for testing.
+type MockProcessRetriever struct {
+    MockProcesses []Win32_Process
+    MockError     error
+}
+
+func (m MockProcessRetriever) GetProcessesByName(name string) ([]Win32_Process, error) {
+    return m.MockProcesses, m.MockError
+}
+Use the Mock in Your Tests:
+
+go
+Copy
+Edit
+func TestGetLobbyPID(t *testing.T) {
+    mockRetriever := MockProcessRetriever{
+        MockProcesses: []Win32_Process{
+            {Name: detection.LOBBY_WINDOW_NAME, ProcessId: 1234},
+        },
+        MockError: nil,
+    }
+    pid, err := getLobbyPID(mockRetriever)
+    if err != nil {
+        t.Fatalf("expected no error, got %v", err)
+    }
+    if pid != 1234 {
+        t.Fatalf("expected pid 1234, got %d", pid)
+    }
+}
+File Organization:
+
+internal/mocks/process_retriever_mock.go: Contains MockProcessRetriever.
+
+internal/close/close.go: Implements WMIProcessRetriever and uses getLobbyPID.
+
+cmd/main.go: Sets up dependencies and initializes the application.
+
+By using interfaces in this manner, you can inject different implementations (real or mock) into your functions, facilitating easier testing and greater flexibility in your application design.
+
+```
 
 ## Go reference date
 
@@ -17,12 +724,8 @@ Mon Jan 2 15:04:05 -0700 MST 2006
 go-toast is a Go library for creating Windows toast notifications. It allows you to send native Windows 10/11 notifications easily.
 
 Installation
-Run:
-
-sh
-Copy
-Edit
 go get github.com/go-toast/toast
+
 Usage
 Modify your lobby_open case:
 
