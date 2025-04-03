@@ -1,8 +1,7 @@
 // To run (in terminal, at project root): go run cmd/lolmonitor/main.go
-// To build: go build -o lolmonitor.exe -ldflags "-H windowsgui" cmd/lolmonitor/main.go
+// To build: go build -o build/lolmonitor.exe -ldflags "-H windowsgui" cmd/lolmonitor/main.go
 // -ldflags "-H windowsgui"   -- hides the terminal
 
-// Load the config file, create the event channel, handle ctrl+c exiting, installing
 package main
 
 import (

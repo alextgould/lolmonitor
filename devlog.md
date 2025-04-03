@@ -7,6 +7,37 @@ probably better to go with [the docs](https://go.dev/doc/modules/layout) opinion
 
 # Interesting Go stuff
 
+## No virtual environments
+
+```chatGPT
+Uninstalling a Go-installed binary
+Go doesn't have a go uninstall command. If you installed rsrc using:
+
+go install github.com/akavel/rsrc@latest
+it placed the binary in your Go bin directory (usually $GOBIN or ~/go/bin on Unix-like systems, %USERPROFILE%\go\bin on Windows).
+
+To remove it, simply delete the binary manually:
+
+rm $(which rsrc)   # Linux/macOS
+del %USERPROFILE%\go\bin\rsrc.exe  # Windows (Command Prompt)
+Remove-Item $env:GOBIN\rsrc.exe  # Windows (PowerShell)
+If you're unsure where it was installed, run:
+
+which rsrc   # Linux/macOS
+where rsrc   # Windows
+and delete the file.
+
+Does go install install per module?
+No, go install installs globally (not per module). Unlike Python virtual environments, Go places binaries in a system-wide location ($GOBIN or $GOPATH/bin). The installed binary is available system-wide, regardless of which project or module you're in.
+
+If you want project-specific dependencies, you'd typically use:
+
+go get github.com/akavel/rsrc
+which downloads the package into your module's go.mod, but that wouldn't install a CLI tool—just the library for use in your Go code.
+
+Go doesn't use virtual environments like Python, as it manages dependencies at the module level via go.mod and go.sum.
+```
+
 ## Generating the icon
 
 * Used leonardo.ai to generate a version of the League of Legends logo with 3 boxes around it (nod to the three block process)
@@ -22,6 +53,47 @@ go build -o build/lolmonitor.exe cmd/lolmonitor/main.go
 
 * consider trying this instead
 https://github.com/josephspurrier/goversioninfo?tab=readme-ov-file
+
+* contains a link to [the docs](https://learn.microsoft.com/en-us/windows/win32/menurc/resource-definition-statements?redirectedfrom=MSDN)
+
+* actually try this, simpler
+
+```chatGPT
+go-winres is a pure Go library and CLI tool for embedding resources into Windows executables. It doesn't require external dependencies like MinGW.​
+Reddit
+
+Steps:
+
+Install go-winres:
+go install github.com/tc-hib/go-winres@latest
+
+Generate the .syso File:
+Navigate to your project's directory and run:
+go-winres simply --icon assets/lolmonitor.ico
+
+1. Understanding Architecture-Specific .syso Files:
+
+_amd64.syso: Used when building a 64-bit (amd64) executable.​
+
+_386.syso: Used when building a 32-bit (386) executable.​
+
+If you're exclusively building for a 64-bit architecture, you only need the _amd64.syso file. However, if you plan to build for both 32-bit and 64-bit architectures, you'll need both .syso files. The Go build system will automatically include the appropriate .syso file based on the target architecture during the build process.​
+
+2. Renaming the .syso File:
+
+You can rename the .syso file to something like lolmonitor_windows_amd64.syso. The naming convention *_windows_amd64.syso helps the Go build system identify the correct resource file for the specified operating system and architecture. Ensure that the renamed file is placed in the same directory as your main package or adjust your build process accordingly.
+
+When building your Go executable for a specific architecture, set the GOARCH environment variable accordingly:​
+
+For 64-bit:
+
+SET GOARCH=amd64
+go build -o lolmonitor.exe -ldflags "-H windowsgui" cmd/lolmonitor/main.go
+For 32-bit:
+
+SET GOARCH=386
+go build -o lolmonitor.exe -ldflags "-H windowsgui" cmd/lolmonitor/main.go
+```
 
 ```chatGPT
 
