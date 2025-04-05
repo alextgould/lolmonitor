@@ -24,3 +24,9 @@ func TestLobbyBlocked(t *testing.T) {
 	LobbyBlocked(endOfBreak)
 	time.Sleep(5 * time.Second) // pause to give the notification time to appear
 }
+
+func TestDelayClose(t *testing.T) {
+	delay := 20
+	DelayClose(delay)
+	time.Sleep(5 * time.Second) // pause to give the notification time to appear
+}

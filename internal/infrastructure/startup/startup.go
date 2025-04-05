@@ -10,7 +10,6 @@ import (
 	"golang.org/x/sys/windows/registry"
 
 	"github.com/alextgould/lolmonitor/internal/interfaces/notifications"
-	//"github.com/alextgould/lolmonitor/internal/infrastructure/logger"
 )
 
 // const but want to change it in _test.go
@@ -65,74 +64,94 @@ func removeFromStartup(taskName string) error {
 	return key.DeleteValue(taskName)
 }
 
-// check if regkey exists
-func startupEntryExists(taskName string) (bool, error) {
+// check if regkey exists, returns a bool and the exePath if it exists
+func startupEntryExists(taskName string) (bool, string, error) {
 	key, err := registry.OpenKey(
 		registry.CURRENT_USER,
 		`Software\Microsoft\Windows\CurrentVersion\Run`,
 		registry.QUERY_VALUE,
 	)
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 	defer key.Close()
 
-	_, _, err = key.GetStringValue(taskName)
-	if err == registry.ErrNotExist {
-		return false, nil
+	exePath, _, err := key.GetStringValue(taskName)
+	if err == registry.ErrNotExist { // check worked and regkey doesn't exist
+		return false, "", nil
 	}
+	if err != nil { // check failed
+		return false, "", err
+	}
+	return true, exePath, nil // check worked and regkey exists
+}
+
+// if LoadOnStartup is True, confirm a valid registry entry exists or else add it
+func ConfirmLoadOnStartup() error {
+
+	taskExists, taskPath, err := startupEntryExists(TASK_NAME)
 	if err != nil {
-		return false, err
+		slog.Error("an error occurred while checking if the startup registry entry exists")
+		return err
 	}
-	return true, nil
+
+	// get location of .exe
+	exePath, err := getCurrentPath()
+	if err != nil {
+		slog.Error("an error occurred while getting the current exe path")
+		return err
+	}
+
+	// registry entry exists and path matches
+	if taskExists {
+		if taskPath == exePath {
+			slog.Info("confirmed startup registry entry exists and is valid")
+			return nil
+		} else {
+			slog.Info("startup registry entry exists but path is different - recreating registry entry")
+
+			// remove the task
+			err = removeFromStartup(TASK_NAME)
+			if err != nil {
+				slog.Error("error removing startup registry entry", "err", err)
+				return err
+			}
+		}
+	}
+
+	// add task
+	err = addToStartup(TASK_NAME, exePath)
+	if err != nil {
+		slog.Error("an error occured while adding startup registry entry", "err", err)
+		return err
+	}
+	slog.Info("registry entry was added")
+	notifications.SendNotification("Automatic startup added", "You no longer need to manually run the lolmonitor.exe file, it will load automatically. If you want to remove this, adjust the config file to have LoadOnStartup: false")
+	return nil
 }
 
 // main function
-func ConfirmStatus(LoadOnStartup, StartupInstalled bool) error {
+func ConfirmNoLoadOnStartup() error {
 
-	// we want to confirm there's no automatic startup and uninstall it if there is
-	if !LoadOnStartup {
-
-		// check if task exists, in case user removed the StartupInstalled config line
-		taskExists, err := startupEntryExists(TASK_NAME)
-		if err != nil {
-			slog.Error("error checking if startup registry entry exists")
-			return err
-		}
-		if !taskExists {
-			slog.Info("confirmed no startup registry entry")
-			return nil
-		}
-
-		// remove the task
-		err = removeFromStartup(TASK_NAME)
-		if err != nil {
-			slog.Error("error removing startup registry entry", "err", err)
-			return err
-		}
-
-		// close the program (assume it was started by the task scheduler)
-		slog.Info("registry entry was removed. closing program.")
-		notifications.SendNotification("Automatic startup removed", "You now need to manually run lolmonitor.exe each time you play. If you want it to run automatically, adjust the config file to have LoadOnStartup: true")
-		// os.Exit(0)
+	taskExists, _, err := startupEntryExists(TASK_NAME)
+	if err != nil {
+		slog.Error("an error occurred while checking if the startup registry entry exists")
+		return err
 	}
 
-	// we want to add a registry entry so the process starts automatically in the future
-	if LoadOnStartup && !StartupInstalled {
-
-		// get location of .exe so task scheduler can run the program
-		exePath, err := getCurrentPath()
-		if err != nil {
-			return err
-		}
-
-		// add task
-		err = addToStartup(TASK_NAME, exePath)
-		if err != nil {
-			return err
-		}
-		slog.Info("registry entry was added")
-		notifications.SendNotification("Automatic startup added", "You no longer need to manually run the lolmonitor.exe file, it will load automatically. If you want to remove this, adjust the config file to have LoadOnStartup: false")
+	if !taskExists {
+		slog.Info("confirmed startup registry entry does not exist")
+		return nil
 	}
+
+	// remove the task
+	err = removeFromStartup(TASK_NAME)
+	if err != nil {
+		slog.Error("error removing startup registry entry", "err", err)
+		return err
+	}
+
+	slog.Info("registry entry was removed")
+	notifications.SendNotification("Automatic startup removed", "You now need to manually run lolmonitor.exe each time you play. If you want it to run automatically, adjust the config file to have LoadOnStartup: true")
 	return nil
 }

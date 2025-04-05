@@ -4,8 +4,12 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"time"
 )
+
+const CONFIG_FILE = "config.json"
 
 type Config struct {
 	DailyStartTime              string `json:"dailyStartTime"`
@@ -16,45 +20,25 @@ type Config struct {
 	MinimumGameDurationMinutes  int    `json:"minimumGameDurationMinutes"`
 	LobbyCloseDelaySeconds      int    `json:"lobbyCloseDelaySeconds"`
 	LoadOnStartup               bool   `json:"loadOnStartup"`
-	StartupInstalled            bool   `json:"startupInstalled"`
 }
 
 // DailyStartTime and DailyEndTime e.g. "04:00" "22:00"
 var defaultConfig = Config{
-	DailyStartTime:              "04:00",
-	DailyEndTime:                "22:00",
-	BreakBetweenGamesMinutes:    10,
+	DailyStartTime:              "00:00",
+	DailyEndTime:                "00:00",
+	BreakBetweenGamesMinutes:    5,
 	BreakBetweenSessionsMinutes: 60,
 	GamesPerSession:             3,
 	MinimumGameDurationMinutes:  15,
 	LobbyCloseDelaySeconds:      10,
 	LoadOnStartup:               true,
-	StartupInstalled:            false,
 }
 
-func LoadConfig(filename string) (Config, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		fmt.Println("Config file not found, creating default config...")
-		SaveConfig(filename, defaultConfig)
-		return defaultConfig, nil
-	}
-	defer file.Close()
-
-	decoder := json.NewDecoder(file)
-	config := defaultConfig
-	err = decoder.Decode(&config)
-	if err != nil {
-		fmt.Println("Invalid config file, resetting to default values...")
-		SaveConfig(filename, defaultConfig)
-		return defaultConfig, nil
-	}
-
-	return config, nil
-}
-
-// SaveConfig writes the configuration to the specified file.
 func SaveConfig(filename string, cfg Config) error {
+	if filename == "" {
+		filename = CONFIG_FILE
+	}
+
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -64,4 +48,48 @@ func SaveConfig(filename string, cfg Config) error {
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ") // Pretty-print JSON
 	return encoder.Encode(cfg)
+}
+
+func LoadConfig(filename string) (Config, error) {
+	if filename == "" {
+		filename = CONFIG_FILE
+	}
+
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Println("Config file not found, creating default config...")
+		SaveConfig(filename, defaultConfig)
+		return defaultConfig, nil
+	}
+	defer file.Close()
+
+	decoder := json.NewDecoder(file)
+	config := defaultConfig       // create a config
+	err = decoder.Decode(&config) // decode the JSON into the new config
+	if err != nil {
+		log.Printf("Error when decoding config file: %v", err)
+		log.Println("Invalid config file, resetting to default values...")
+		SaveConfig(filename, defaultConfig)
+		return defaultConfig, nil
+	}
+
+	return config, nil
+}
+
+// Check if config file has been updated more recently than time value
+func CheckConfigUpdated(filename string, t time.Time) (bool, error) {
+	if filename == "" {
+		filename = CONFIG_FILE
+	}
+
+	fileInfo, err := os.Stat(filename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, fmt.Errorf("file does not exist: %s", filename)
+		}
+		return false, err
+	}
+
+	// Compare the file's modification time with the provided time
+	return fileInfo.ModTime().After(t), nil
 }

@@ -41,3 +41,8 @@ func LobbyBlocked(endOfBreak time.Time) {
 		endOfBreak.Format("3:04pm"))
 	SendNotification("League of Legends Blocked", notification_text)
 }
+
+func DelayClose(delay int) {
+	notification_text := fmt.Sprintf("GG. Take a few seconds to look over the post game lobby. The lobby will close automatically in %d seconds", delay)
+	SendNotification("League of Legends Lobby Closed", notification_text)
+}

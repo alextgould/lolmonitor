@@ -5,7 +5,24 @@
 
 probably better to go with [the docs](https://go.dev/doc/modules/layout) opinion on this
 
-# Interesting Go stuff
+
+# Thinking through how changes in config file should be picked up
+
+Options
+1. we monitor continuously for changes in the config file, so any change will be reflected immediately (within about 15 seconds)
+  - can do this by looking at the last modified date on the config file
+  - adds a little bit of resource overhead
+  - allows user to fairly immediately install/uninstall startup, reset session limits etc
+
+2. we only check the config file when the program is started
+  - if startup is installed, will happen when the user logs on, so it's a "changes take effect on the next day" affair
+
+3. we can check the config file when the program is started and also when a lobby check is being done. this should handle most scenarios with minimal overhead.
+
+Also thinking about how install/uninstall works 
+  - what happens if user installs (perhaps using default settings) but then moves the .exe file to another location? Should we update the registry entry each time the program is loaded? Or just confirm the path is still correct each time?
+
+# Interesting Go/dev stuff
 
 ## default config values 
 

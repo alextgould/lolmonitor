@@ -11,7 +11,7 @@ import (
 
 	"github.com/alextgould/lolmonitor/internal/application"
 	"github.com/alextgould/lolmonitor/internal/config"
-	"github.com/alextgould/lolmonitor/internal/startup"
+	"github.com/alextgould/lolmonitor/internal/infrastructure/startup"
 
 	window "github.com/alextgould/lolmonitor/pkg/window"
 )
@@ -20,15 +20,19 @@ func main() {
 	log.Println("Starting up lolmonitor")
 
 	// Load (or create) config file
-	cfg, err := config.LoadConfig("config.json")
+	cfg, err := config.LoadConfig("")
 	if err != nil {
 		log.Panicf("Failed to load config: %v", err)
 	}
 
-	// Install / Uninstall from Windows Task Scheduler
-	err = startup.ConfirmStatus(cfg)
+	// Add or remove startup process based on config settings
+	if cfg.LoadOnStartup {
+		err = startup.ConfirmLoadOnStartup()
+	} else {
+		err = startup.ConfirmNoLoadOnStartup()
+	}
 	if err != nil {
-		log.Panicf("Unable to manage task scheduler settings: %v", err)
+		log.Panicf("Error updating startup: %v", err)
 	}
 
 	// Create channel for window events

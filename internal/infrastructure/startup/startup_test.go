@@ -68,7 +68,7 @@ func TestAddToStartup(t *testing.T) {
 }
 
 func TestStartupEntryExists(t *testing.T) {
-	exists, err := startupEntryExists(TEST_TASK_NAME)
+	exists, _, err := startupEntryExists(TEST_TASK_NAME)
 	if err != nil {
 		t.Errorf("startupEntryExists error: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestRemoveFromStartup(t *testing.T) {
 }
 
 func TestStartupEntryNoExists(t *testing.T) {
-	exists, err := startupEntryExists(TEST_TASK_NAME)
+	exists, _, err := startupEntryExists(TEST_TASK_NAME)
 	if err != nil {
 		t.Errorf("startupEntryNoExists error: %v", err)
 	}
@@ -99,13 +99,13 @@ func TestStartupEntryNoExists(t *testing.T) {
 
 // test external function
 
-func TestConfirmStatus(t *testing.T) {
+func TestConfirmFunctions(t *testing.T) {
 
 	// override
 	TASK_NAME = TEST_TASK_NAME
 
 	// this should install it
-	ConfirmStatus(true, false)
+	ConfirmLoadOnStartup()
 
 	// check installed
 	TestStartupEntryExists(t)
@@ -114,20 +114,20 @@ func TestConfirmStatus(t *testing.T) {
 	time.Sleep(10 * time.Second)
 
 	// this should do nothing
-	ConfirmStatus(true, true)
+	ConfirmLoadOnStartup()
 
 	// check installed
 	TestStartupEntryExists(t)
 
 	// this should uninstall it
-	ConfirmStatus(false, true)
+	ConfirmNoLoadOnStartup()
 
-	// check installed
+	// check not installed
 	TestStartupEntryNoExists(t)
 
 	// this should do nothing
-	ConfirmStatus(false, false)
+	ConfirmNoLoadOnStartup()
 
-	// check installed
+	// check not installed
 	TestStartupEntryNoExists(t)
 }
