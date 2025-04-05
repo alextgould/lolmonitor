@@ -42,6 +42,12 @@ func Monitor(cfg config.Config, events chan window.ProcessEvent, pr window.Proce
 	var sessionGames int
 
 	for event := range events {
+
+		// reset session games if there was a significant gap since the last game ended (and we're either opening the lobby or starting a new game)
+		if sessionGames > 0 && event.Type == "open" && gameEndTime.Add(time.Duration(cfg.BreakBetweenSessionsMinutes)*time.Minute).Before(time.Now()) {
+			sessionGames = 0
+		}
+
 		log.Printf("Processing event - type: %v name: %v", event.Type, event.Name)
 		if event.Name == GAME_WINDOW_NAME {
 			if event.Type == "open" {
@@ -55,8 +61,14 @@ func Monitor(cfg config.Config, events chan window.ProcessEvent, pr window.Proce
 
 				// always close the lobby after a game, unless breakDuration is 0
 				if breakDuration > 0 {
-					log.Printf("Closing the lobby, game ended. Break will expire at: %v", endOfBreak.Format("2006/01/02 15:04:05"))
 
+					// optional delay until close takes effect
+					if cfg.LobbyCloseDelaySeconds > 0 {
+						notifications.DelayClose(cfg.LobbyCloseDelaySeconds)
+						time.Sleep(time.Duration(cfg.LobbyCloseDelaySeconds) * time.Second)
+					}
+
+					log.Printf("Closing the lobby. Break will expire at: %v", endOfBreak.Format("2006/01/02 15:04:05"))
 					err := window.Close(LOBBY_WINDOW_NAME, pr, pk)
 					if err != nil {
 						log.Printf("Error: %v", err)
@@ -66,6 +78,20 @@ func Monitor(cfg config.Config, events chan window.ProcessEvent, pr window.Proce
 			}
 		} else if event.Type == "open" {
 			log.Println("Lobby was opened")
+
+			// check if config file has been recently modified and refresh values if necessary
+			lastChecked := time.Now().Add(-time.Duration(CHECK_FREQUENCY_SECONDS) * time.Second)
+			configUpdated, err := config.CheckConfigUpdated("", lastChecked)
+			if err != nil {
+				log.Printf("Error checking if config was updated: %v", err)
+			} else if configUpdated {
+				cfg, err = config.LoadConfig("")
+				if err != nil {
+					log.Panicf("Failed to load config: %v", err)
+				}
+			}
+
+			// check if Lobby is banned and force close if so
 			isLobbyBan, err := isLobbyBan(cfg, time.Now(), endOfBreak)
 			if err != nil {
 				log.Printf("Error: %v", err)
@@ -130,3 +156,8 @@ func isLobbyBan(cfg config.Config, currentTime, endOfBreak time.Time) (bool, err
 	log.Println("lobby is not banned")
 	return false, nil
 }
+
+// TODO - need to adjust logic in orchestrate to reset the session games if a session break duration passes
+// e.g. you play 2 games and can play up to 3 games. then you don't play.
+// next day you come back and want to play your 3 games but it counts the 1st as your 3rd in the session
+// that would be bad

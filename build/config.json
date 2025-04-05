@@ -1,8 +1,10 @@
 {
   "dailyStartTime": "04:00",
-  "dailyEndTime": "22:00",
-  "breakBetweenGamesMinutes": 15,
+  "dailyEndTime": "22:30",
+  "breakBetweenGamesMinutes": 5,
   "breakBetweenSessionsMinutes": 60,
   "gamesPerSession": 3,
-  "minimumGameDurationMinutes": 15
+  "minimumGameDurationMinutes": 15,
+  "lobbyCloseDelaySeconds": 10,
+  "loadOnStartup": true
 }
