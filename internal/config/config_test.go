@@ -38,3 +38,33 @@ func TestLoadConfig(t *testing.T) {
 		t.Errorf("Expected start time 04:00, got %s", cfg.DailyStartTime)
 	}
 }
+
+func TestSaveConfig(t *testing.T) {
+	// Create a temporary file for testing
+	tempFile, err := os.CreateTemp("", "config_test_*.json")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tempFile.Name())
+
+	// Create a sample config
+	cfg := Config{
+		LoadOnStartup:    true,
+		StartupInstalled: false,
+	}
+
+	// Save the config
+	if err := SaveConfig(tempFile.Name(), cfg); err != nil {
+		t.Fatalf("SaveConfig failed: %v", err)
+	}
+
+	// Reload the config to verify it was saved correctly
+	loadedCfg, err := LoadConfig(tempFile.Name())
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+
+	if loadedCfg.LoadOnStartup != cfg.LoadOnStartup || loadedCfg.StartupInstalled != cfg.StartupInstalled {
+		t.Errorf("Loaded config does not match saved config: got %+v, want %+v", loadedCfg, cfg)
+	}
+}

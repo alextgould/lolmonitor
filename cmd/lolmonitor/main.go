@@ -11,6 +11,7 @@ import (
 
 	"github.com/alextgould/lolmonitor/internal/application"
 	"github.com/alextgould/lolmonitor/internal/config"
+	"github.com/alextgould/lolmonitor/internal/startup"
 
 	window "github.com/alextgould/lolmonitor/pkg/window"
 )
@@ -24,7 +25,11 @@ func main() {
 		log.Panicf("Failed to load config: %v", err)
 	}
 
-	// TODO: implement the startup install based on config values
+	// Install / Uninstall from Windows Task Scheduler
+	err = startup.ConfirmStatus(cfg)
+	if err != nil {
+		log.Panicf("Unable to manage task scheduler settings: %v", err)
+	}
 
 	// Create channel for window events
 	gameEvents := make(chan window.ProcessEvent, 10) // Buffered channel to prevent blocking

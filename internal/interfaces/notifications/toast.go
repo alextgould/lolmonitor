@@ -12,7 +12,7 @@ import (
 	"github.com/go-toast/toast"
 )
 
-func sendNotification(title, message string) { // TODO: add optional button text
+func SendNotification(title, message string) { // TODO: add optional button text
 	notification := toast.Notification{
 		AppID:   "LoL Monitor",
 		Title:   title,
@@ -32,12 +32,12 @@ func EndOfGame(endOfBreak time.Time) {
 	notification_text := fmt.Sprintf("GG. Take a break and come back in %.0f minutes at %v",
 		math.Ceil(time.Until(endOfBreak).Minutes()),
 		endOfBreak.Format("3:04pm"))
-	sendNotification("League of Legends Lobby Closed", notification_text)
+	SendNotification("League of Legends Lobby Closed", notification_text)
 }
 
 func LobbyBlocked(endOfBreak time.Time) {
 	notification_text := fmt.Sprintf("You're on a break! Try again in %.0f minutes at %v",
 		math.Ceil(time.Until(endOfBreak).Minutes()),
 		endOfBreak.Format("3:04pm"))
-	sendNotification("League of Legends Blocked", notification_text)
+	SendNotification("League of Legends Blocked", notification_text)
 }

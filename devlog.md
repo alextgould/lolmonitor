@@ -7,6 +7,40 @@ probably better to go with [the docs](https://go.dev/doc/modules/layout) opinion
 
 # Interesting Go stuff
 
+## default config values 
+
+thinking through what happens if they user deletes values - do they get what they expect?
+
+```chatGPT
+If your config file is missing a value (e.g., LoadOnStartup), the LoadConfig function will still decode the JSON into the Config struct, but the missing value will be set to the zero value for its type. For example:
+
+A missing bool field like LoadOnStartup will default to false.
+A missing int field will default to 0.
+A missing string field will default to an empty string ("").
+```
+
+This would effectively result in one or more of the following
+var defaultConfig = Config{
+	DailyStartTime:              "",
+	DailyEndTime:                "",
+	BreakBetweenGamesMinutes:    0,
+	BreakBetweenSessionsMinutes: 0,
+	GamesPerSession:             0,
+	MinimumGameDurationMinutes:  0,
+	LobbyCloseDelaySeconds:      0,
+	LoadOnStartup:               false,
+	StartupInstalled:            false,
+}
+
+DailyStartTime - confirmed code includes "" check to disable OK
+DailyEndTime - confirmed code includes "" check to disable OK
+BreakBetweenGamesMinutes - disables the break OK
+BreakBetweenSessionsMinutes - disables the break OK
+GamesPerSession - setting 0 disables this restriction OK
+MinimumGameDurationMinutes - this disables the remake functionality but is probably fine
+LobbyCloseDelaySeconds - this will be 0 by default OK
+LoadOnStartup/StartupInstalled - default of false for both means the install/uninstall won't happen - probably OK but could be more robust + less efficient to always check for tasks in task scheduler if LoadOnStartup is false (and hence pick up the scenario where they want to uninstall it and do so by deleting the line LoadOnStartup true) -> make the change to always check
+
 ## No virtual environments
 
 ```chatGPT

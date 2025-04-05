@@ -9,7 +9,7 @@ import (
 )
 
 func TestNotifications(t *testing.T) {
-	sendNotification("test notification", "this is a test of the notification system")
+	SendNotification("test notification", "this is a test of the notification system")
 	time.Sleep(5 * time.Second) // pause to give the notification time to appear
 }
 
