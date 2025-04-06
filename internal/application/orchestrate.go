@@ -35,11 +35,10 @@ func Monitor(cfg config.Config, events chan window.ProcessEvent, pr window.Proce
 	go window.MonitorProcess(GAME_WINDOW_NAME, events, CHECK_FREQUENCY_SECONDS, pr)
 	log.Println("Monitoring for Game window")
 
-	var gameStartTime time.Time
-	var gameEndTime time.Time
+	var gameStartTime, gameEndTime, endOfBreak time.Time
 	var breakDuration time.Duration
-	var endOfBreak time.Time
 	var sessionGames int
+	lastChecked := time.Now()
 
 	for event := range events {
 
@@ -47,6 +46,18 @@ func Monitor(cfg config.Config, events chan window.ProcessEvent, pr window.Proce
 		if sessionGames > 0 && event.Type == "open" && gameEndTime.Add(time.Duration(cfg.BreakBetweenSessionsMinutes)*time.Minute).Before(time.Now()) {
 			sessionGames = 0
 		}
+
+		// update the config if it has been modified recently
+		configUpdated, err := config.CheckConfigUpdated("", lastChecked)
+		if err != nil {
+			log.Printf("Error checking if config was updated: %v", err)
+		} else if configUpdated {
+			cfg, err = config.LoadConfig("")
+			if err != nil {
+				log.Panicf("Failed to load config: %v", err)
+			}
+		}
+		lastChecked = time.Now()
 
 		log.Printf("Processing event - type: %v name: %v", event.Type, event.Name)
 		if event.Name == GAME_WINDOW_NAME {
@@ -78,18 +89,6 @@ func Monitor(cfg config.Config, events chan window.ProcessEvent, pr window.Proce
 			}
 		} else if event.Type == "open" {
 			log.Println("Lobby was opened")
-
-			// check if config file has been recently modified and refresh values if necessary
-			lastChecked := time.Now().Add(-time.Duration(CHECK_FREQUENCY_SECONDS) * time.Second)
-			configUpdated, err := config.CheckConfigUpdated("", lastChecked)
-			if err != nil {
-				log.Printf("Error checking if config was updated: %v", err)
-			} else if configUpdated {
-				cfg, err = config.LoadConfig("")
-				if err != nil {
-					log.Panicf("Failed to load config: %v", err)
-				}
-			}
 
 			// check if Lobby is banned and force close if so
 			isLobbyBan, err := isLobbyBan(cfg, time.Now(), endOfBreak)

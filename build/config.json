@@ -5,6 +5,6 @@
   "breakBetweenSessionsMinutes": 60,
   "gamesPerSession": 3,
   "minimumGameDurationMinutes": 15,
-  "lobbyCloseDelaySeconds": 10,
+  "lobbyCloseDelaySeconds": 30,
   "loadOnStartup": true
 }

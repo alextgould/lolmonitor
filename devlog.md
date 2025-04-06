@@ -1,10 +1,15 @@
 
 # TODO
 
-* consider [this post](https://medium.com/@benbjohnson/standard-package-layout-7cdbc8391fc1) idea about organising packages by dependency... I think I'm sort of doing this naturally
+* write blog post
+* update readme with what each config value does, what the defaults are, some examples of custom settings
 
-probably better to go with [the docs](https://go.dev/doc/modules/layout) opinion on this
+# Trial run
 
+6/4/25
+* first game was a frustrating loss with me having a decent rating but lane opponent picking up random kills in bot lane despite many pings. Having the lobby close automatically was actually a relief. I couldn't recall what the time to log back in is, consider adjusting Toast notification text (e.g. "break until 9:36pm" as the heading), or add a config option to do another notification when the break is over?
+* second game was another frustrating loss with me having a big early lead in lane but my bot lane going 1/15. Is there a way to make notifications self destruct? although now that I notice this, while you do have to manually close each one, it also means you can leave it and check it if you're wondering when your break will expire... I have to admit, right now I'm sort of looking forward to my third game happening, then being forced to stop playing, and having the excuse to go play a relaxing cosy game for an hour or two before sleeping rather than trying to make up for the frustrating losses. There's definitely a gambler's fallacy at play here.
+* third game got an A+ and lost, essentially to their adc who seemed to be a fed/smurf jinx (got a penta). glad that i was done based on 3 games + 10pm end time. it's crazy how easy it is to feel good about not playing when the game window closes, even on a loss. noticed my config.json file is missing the lobby delay parameter, minor fix.
 
 # Thinking through how changes in config file should be picked up
 
@@ -23,6 +28,12 @@ Also thinking about how install/uninstall works
   - what happens if user installs (perhaps using default settings) but then moves the .exe file to another location? Should we update the registry entry each time the program is loaded? Or just confirm the path is still correct each time?
 
 # Interesting Go/dev stuff
+
+## folder structure
+
+* consider [this post](https://medium.com/@benbjohnson/standard-package-layout-7cdbc8391fc1) idea about organising packages by dependency... I think I'm sort of doing this naturally
+
+probably better to go with [the docs](https://go.dev/doc/modules/layout) opinion on this
 
 ## default config values 
 
