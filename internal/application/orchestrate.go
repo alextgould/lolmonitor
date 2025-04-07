@@ -75,7 +75,7 @@ func Monitor(cfg config.Config, events chan window.ProcessEvent, pr window.Proce
 
 					// optional delay until close takes effect
 					if cfg.LobbyCloseDelaySeconds > 0 {
-						notifications.DelayClose(cfg.LobbyCloseDelaySeconds)
+						notifications.DelayClose(cfg.LobbyCloseDelaySeconds, sessionGames, cfg.GamesPerSession)
 						time.Sleep(time.Duration(cfg.LobbyCloseDelaySeconds) * time.Second)
 					}
 
@@ -84,7 +84,7 @@ func Monitor(cfg config.Config, events chan window.ProcessEvent, pr window.Proce
 					if err != nil {
 						log.Printf("Error: %v", err)
 					}
-					notifications.EndOfGame(endOfBreak)
+					notifications.EndOfGame(endOfBreak, sessionGames, cfg.GamesPerSession)
 				}
 			}
 		} else if event.Type == "open" {

@@ -1,6 +1,7 @@
 // To run (in terminal, at project root): go run cmd/lolmonitor/main.go
 // To build: go build -o build/lolmonitor.exe -ldflags "-H windowsgui" cmd/lolmonitor/main.go
 // -ldflags "-H windowsgui"   -- hides the terminal
+// To build a version that will run with output logged to the terminal: go build -o build/lolmonitor_terminal.exe cmd/lolmonitor/main.go
 
 package main
 

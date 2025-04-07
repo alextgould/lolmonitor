@@ -126,7 +126,7 @@ func ConfirmLoadOnStartup() error {
 		return err
 	}
 	slog.Info("registry entry was added")
-	notifications.SendNotification("Automatic startup added", "You no longer need to manually run the lolmonitor.exe file, it will load automatically. If you want to remove this, adjust the config file to have LoadOnStartup: false")
+	notifications.SendNotification("Automatic startup added", "You no longer need to manually run the lolmonitor.exe file, it will load automatically. If you want to remove this, adjust the config file to have LoadOnStartup: false", false)
 	return nil
 }
 
@@ -152,6 +152,6 @@ func ConfirmNoLoadOnStartup() error {
 	}
 
 	slog.Info("registry entry was removed")
-	notifications.SendNotification("Automatic startup removed", "You now need to manually run lolmonitor.exe each time you play. If you want it to run automatically, adjust the config file to have LoadOnStartup: true")
+	notifications.SendNotification("Automatic startup removed", "You now need to manually run lolmonitor.exe each time you play. If you want it to run automatically, adjust the config file to have LoadOnStartup: true", false)
 	return nil
 }

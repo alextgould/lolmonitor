@@ -98,3 +98,16 @@ func TestCheckConfig(t *testing.T) {
 		t.Errorf("Expected file to not be updated after the future time, but it was")
 	}
 }
+
+// // manual test
+// func TestLoadConfigManual(t *testing.T) {
+
+// 	// load the config file currently in the build folder and display it
+// 	cfg, err := LoadConfig("../../build/config.json") // this gives 30 OK
+// 	if err != nil {
+// 		t.Fatalf("LoadConfig failed: %v", err)
+// 	}
+// 	t.Logf("cfg is %d", cfg.LobbyCloseDelaySeconds)
+// 	t.Fail()
+// 	// is showing 10 not 30.. but this is because it created a config.json in the config directory
+// }

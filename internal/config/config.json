@@ -1,0 +1,10 @@
+{
+  "dailyStartTime": "00:00",
+  "dailyEndTime": "00:00",
+  "breakBetweenGamesMinutes": 5,
+  "breakBetweenSessionsMinutes": 60,
+  "gamesPerSession": 3,
+  "minimumGameDurationMinutes": 15,
+  "lobbyCloseDelaySeconds": 10,
+  "loadOnStartup": true
+}

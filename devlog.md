@@ -11,6 +11,13 @@
 * second game was another frustrating loss with me having a big early lead in lane but my bot lane going 1/15. Is there a way to make notifications self destruct? although now that I notice this, while you do have to manually close each one, it also means you can leave it and check it if you're wondering when your break will expire... I have to admit, right now I'm sort of looking forward to my third game happening, then being forced to stop playing, and having the excuse to go play a relaxing cosy game for an hour or two before sleeping rather than trying to make up for the frustrating losses. There's definitely a gambler's fallacy at play here.
 * third game got an A+ and lost, essentially to their adc who seemed to be a fed/smurf jinx (got a penta). glad that i was done based on 3 games + 10pm end time. it's crazy how easy it is to feel good about not playing when the game window closes, even on a loss. noticed my config.json file is missing the lobby delay parameter, minor fix.
 
+7/4/25
+* still enjoying the force close break
+* lobby time is 10s despite having updated config.json to 30s which suggests the .exe isn't actually finding the config.json file and is relying on the defaultConfig fallback. created lolmonitor_terminal.exe to test/confirm, but everything seemed to be working fine. will try again with lolmonitor.exe tomorrow and if it's still an issue try rebuild.
+* having a break by default can actually be nice as it lets you honor your team mates, still of two minds whether to recommend it or not
+* consider having ban times as e.g. "00:00-04:00; 22:00-24:00" to allow for bans in the middle of the day (e.g. during working hours)?
+* mucked around with the specific text shown in the notifications, as well as whether they are long or short duration. consider whether to add a config parameter to silence the notifications rather than forcing the user to do so manually within windows?
+
 # Thinking through how changes in config file should be picked up
 
 Options
