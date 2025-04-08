@@ -12,25 +12,25 @@ import (
 const CONFIG_FILE = "config.json"
 
 type Config struct {
-	DailyStartTime              string `json:"dailyStartTime"`
-	DailyEndTime                string `json:"dailyEndTime"`
 	BreakBetweenGamesMinutes    int    `json:"breakBetweenGamesMinutes"`
 	BreakBetweenSessionsMinutes int    `json:"breakBetweenSessionsMinutes"`
 	GamesPerSession             int    `json:"gamesPerSession"`
 	MinimumGameDurationMinutes  int    `json:"minimumGameDurationMinutes"`
 	LobbyCloseDelaySeconds      int    `json:"lobbyCloseDelaySeconds"`
+	DailyStartTime              string `json:"dailyStartTime"`
+	DailyEndTime                string `json:"dailyEndTime"`
 	LoadOnStartup               bool   `json:"loadOnStartup"`
 }
 
 // DailyStartTime and DailyEndTime e.g. "04:00" "22:00"
 var defaultConfig = Config{
-	DailyStartTime:              "00:00",
-	DailyEndTime:                "00:00",
 	BreakBetweenGamesMinutes:    5,
 	BreakBetweenSessionsMinutes: 60,
 	GamesPerSession:             3,
 	MinimumGameDurationMinutes:  15,
-	LobbyCloseDelaySeconds:      10,
+	LobbyCloseDelaySeconds:      30,
+	DailyStartTime:              "00:00",
+	DailyEndTime:                "00:00",
 	LoadOnStartup:               true,
 }
 
