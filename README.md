@@ -4,17 +4,19 @@
 
 LoL Monitor is a tool to help League of Legends players manage their gaming sessions, enforcing cooldowns between games or maximum number of games played in a session.
 
+This tool is currently only designed for use by Windows users.
+
 ## Quick start
 
 ### Download the program
 
-The easiest way to get started is to download the [lolmonitor.exe](/build/lolmonitor.exe) file. Save it wherever you like and run it. This will create a config.json file in the same location.
+The easiest way to get started is to download [lolmonitor.exe](/build/lolmonitor.exe). Clicking this link takes you to the Github page for the file, in which you can download it (by clicking the "..." elipses in the top right, or using Ctrl+Shift+S). Save it wherever you like and run it. This will create a config.json file in the same location.
 
 ### Default settings
 
 When you run the program, it will:
 1. Close the Lobby after each game. There will be a 30 second delay, so you have time to honor your team mates or take a quick look at the damage chart.
-2. Allow you to play 3 games in a session (a ["3 block"](https://www.youtube.com/watch?v=6K1xBJCjxi0&ab_channel=BrokenByConcept)), with a short 5 minute break between each game.
+2. Allow you to play 3 games in a session (a ["3 block"](https://www.youtube.com/watch?v=6K1xBJCjxi0&ab_channel=BrokenByConcept)) with a short 5 minute break between each game.
 3. Ignore games under 15 minutes in duration (remakes).
 4. Require a longer break of 1 hour between sessions.
 5. Load automatically whenever you log into windows.
