@@ -36,8 +36,12 @@ func SendNotification(title, message string, duration_long bool) { // TODO: add 
 
 func DelayClose(delay int, sessionGames, gamesPerSession int) {
 	var notification_title, notification_text string
-	notification_title = fmt.Sprintf("Game over! That's game %d of %d.", sessionGames, gamesPerSession)
-	notification_text = fmt.Sprintf("Take a moment to look over the post game lobby.\u2028\u2028The lobby will close automatically in %d seconds", delay)
+	if sessionGames > 0 {
+		notification_title = fmt.Sprintf("Game over! That's game %d of %d.", sessionGames, gamesPerSession)
+	} else { // sessionGames is reset to 0 after the last game of the session
+		notification_title = fmt.Sprintf("Session over! That's game %d of %d.", gamesPerSession, gamesPerSession)
+	}
+	notification_text = fmt.Sprintf("The lobby will close automatically in %d seconds", delay)
 	SendNotification(notification_title, notification_text, false)
 }
 
@@ -49,8 +53,8 @@ func EndOfGame(endOfBreak time.Time, sessionGames, gamesPerSession int) {
 			math.Ceil(time.Until(endOfBreak).Minutes()),
 			endOfBreak.Format("3:04pm"))
 	} else {
-		notification_title = fmt.Sprintf("Session over! That's game %d of %d.", sessionGames, gamesPerSession)
-		notification_text = fmt.Sprintf("Take a good break to recover and come back some time after %v)",
+		notification_title = fmt.Sprintf("Session over! That's game %d of %d.", gamesPerSession, gamesPerSession)
+		notification_text = fmt.Sprintf("Take a break to recover and come back some time after %v)",
 			endOfBreak.Format("3:04pm"))
 	}
 	SendNotification(notification_title, notification_text, true)

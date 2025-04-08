@@ -54,9 +54,13 @@ If anything goes wrong, you can always just open Task Manager (right click the t
 
 You're welcome to do this! However, you may find that having the lobby close automatically after each game is surprisingly effective. The main goal is just to get the emotional autopilot monkey brain out of the way. If you find that the post game lobby environment makes you want to keep playing longer than you should, try setting the lobbyCloseDelaySeconds to 0 so you never have to deal with it.
 
+* What happens if I am in the queue or in champion select when my dailyEndTime occurs?
+
+The dailyEndTime stops you from opening the lobby, but it won't close the lobby if it's already open.
+
 * What if I don't trust you?
 
-This project is open source, so you're free to look through the code - or ask ChatGPT to do so for you - to gain some comfort. Then you can compile the code into an .exe file yourself using the instructions at the top of [main.go](/cmd/lolmonitor/main.go). If you haven't already, you'll need to have some sort of IDE such as [vscode](https://code.visualstudio.com/) and [install Go](https://go.dev/dl/). You may also want to change loadOnStartup to false in the config.json file, and you can run Registry Editor to confirm it's been uninstalled.
+This project is open source, so you're free to look through the code - or ask ChatGPT to do so for you - to gain some comfort. Then you can compile the program yourself using the instructions at the top of [main.go](/cmd/lolmonitor/main.go). If you haven't already, you'll need to have some sort of IDE such as [vscode](https://code.visualstudio.com/) and [install Go](https://go.dev/dl/).
 
 * That's a cool logo?
 
