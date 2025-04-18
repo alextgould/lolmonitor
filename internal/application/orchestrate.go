@@ -42,11 +42,6 @@ func Monitor(cfg config.Config, events chan window.ProcessEvent, pr window.Proce
 
 	for event := range events {
 
-		// reset session games if there was a significant gap since the last game ended (and we're either opening the lobby or starting a new game)
-		if sessionGames > 0 && event.Type == "open" && gameEndTime.Add(time.Duration(cfg.BreakBetweenSessionsMinutes)*time.Minute).Before(time.Now()) {
-			sessionGames = 0
-		}
-
 		// update the config if it has been modified recently
 		configUpdated, err := config.CheckConfigUpdated("", lastChecked)
 		if err != nil {
@@ -56,8 +51,14 @@ func Monitor(cfg config.Config, events chan window.ProcessEvent, pr window.Proce
 			if err != nil {
 				log.Panicf("Failed to load config: %v", err)
 			}
+			log.Print("Config values updated as file has been modified since the last event")
 		}
 		lastChecked = time.Now()
+
+		// reset session games if there was a significant gap since the last game ended (and we're either opening the lobby or starting a new game)
+		if sessionGames > 0 && event.Type == "open" && gameEndTime.Add(time.Duration(cfg.BreakBetweenSessionsMinutes)*time.Minute).Before(time.Now()) {
+			sessionGames = 0
+		}
 
 		log.Printf("Processing event - type: %v name: %v", event.Type, event.Name)
 		if event.Name == GAME_WINDOW_NAME {
@@ -107,8 +108,6 @@ func Monitor(cfg config.Config, events chan window.ProcessEvent, pr window.Proce
 }
 
 // post game logic to determine the new sessionGames and endOfBreak values
-// Confirming: Go does not allow implicit pointer updates for integers like sessionGames.
-// You must return the updated value and assign it in the calling function.
 func postGame(cfg config.Config, currentTime, gameStartTime, gameEndTime time.Time, sessionGames int) (int, time.Time, time.Duration) {
 	var gameDuration, breakDuration time.Duration
 
@@ -155,8 +154,3 @@ func isLobbyBan(cfg config.Config, currentTime, endOfBreak time.Time) (bool, err
 	log.Println("lobby is not banned")
 	return false, nil
 }
-
-// TODO - need to adjust logic in orchestrate to reset the session games if a session break duration passes
-// e.g. you play 2 games and can play up to 3 games. then you don't play.
-// next day you come back and want to play your 3 games but it counts the 1st as your 3rd in the session
-// that would be bad

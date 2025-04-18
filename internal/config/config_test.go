@@ -97,17 +97,50 @@ func TestCheckConfig(t *testing.T) {
 	if updated {
 		t.Errorf("Expected file to not be updated after the future time, but it was")
 	}
+
+	// temp - force fail to manually review the log messages
+	// t.Fail()
 }
 
-// // manual test
+// manual test
 // func TestLoadConfigManual(t *testing.T) {
 
-// 	// load the config file currently in the build folder and display it
+// 	// load the config file in the build folder and display it
+
 // 	cfg, err := LoadConfig("../../build/config.json") // this gives 30 OK
 // 	if err != nil {
 // 		t.Fatalf("LoadConfig failed: %v", err)
 // 	}
-// 	t.Logf("cfg is %d", cfg.LobbyCloseDelaySeconds)
-// 	t.Fail()
-// 	// is showing 10 not 30.. but this is because it created a config.json in the config directory
+// 	t.Logf("cfg.LobbyCloseDelaySeconds is %d", cfg.LobbyCloseDelaySeconds)
+
+// 	// check if the config file has been updated in the last 60 seconds
+// 	lastChecked := time.Now().Add(-60 * time.Second)
+// 	configUpdated, err := CheckConfigUpdated("../../build/config.json", lastChecked)
+// 	if err != nil {
+// 		log.Printf("CheckConfigUpdated(\"\") error value is %v", err)
+// 	}
+// 	log.Printf("CheckConfigUpdated(\"\") result is %v", configUpdated)
+
+// 	// works fine when using full path
+// 	// Return value of fileInfo.ModTime().After(t) will be true, with fileInfo.ModTime() being 2025/04/18 15:09:15 and t value being 2025/04/18 15:08:20
+
+// 	// now try using "" with the config file located in this directory
+
+// 	cfg, err = LoadConfig("")
+// 	if err != nil {
+// 		t.Fatalf("LoadConfig failed: %v", err)
+// 	}
+// 	t.Logf("cfg.dailyStartTime is %v", cfg.DailyStartTime) // expect 2am
+
+// 	// check if the config file has been updated in the last 60 seconds
+// 	configUpdated, err = CheckConfigUpdated("", lastChecked)
+// 	if err != nil {
+// 		log.Printf("CheckConfigUpdated(\"\") error value is %v", err)
+// 	}
+// 	log.Printf("CheckConfigUpdated(\"\") result is %v", configUpdated)
+
+// 	// works fine when using implied path
+// 	// 2025/04/18 15:16:16 Return value of fileInfo.ModTime().After(t) will be true, with fileInfo.ModTime() being 2025/04/18 15:16:12 and t value being 2025/04/18 15:15:16
+
+// 	t.Fail() // check log output
 // }
