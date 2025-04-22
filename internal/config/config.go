@@ -6,7 +6,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
+
+	"github.com/alextgould/lolmonitor/internal/interfaces/notifications"
+	"github.com/alextgould/lolmonitor/internal/utils"
 )
 
 const CONFIG_FILE = "config.json"
@@ -52,7 +56,11 @@ func SaveConfig(filename string, cfg Config) error {
 
 func LoadConfig(filename string) (Config, error) {
 	if filename == "" {
-		filename = CONFIG_FILE
+		exePath, err := utils.GetCurrentPath()
+		if err != nil {
+			return Config{}, fmt.Errorf("failed to get executable path: %v", err)
+		}
+		filename = filepath.Join(exePath, CONFIG_FILE)
 	}
 
 	file, err := os.Open(filename)
@@ -85,6 +93,11 @@ func CheckConfigUpdated(filename string, t time.Time) (bool, error) {
 	fileInfo, err := os.Stat(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
+
+			// TEMP - getting default 30 sec delay when I have lobbyCloseDelaySeconds set to 15 sec in config - why??
+			notification_text := fmt.Sprintf("File does not exist: %s", filename)
+			notifications.SendNotification("Unable to find config file", notification_text, false)
+
 			return false, fmt.Errorf("file does not exist: %s", filename)
 		}
 		return false, err

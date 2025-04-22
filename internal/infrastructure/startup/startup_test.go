@@ -7,9 +7,10 @@ package startup
 import (
 	"log/slog"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/alextgould/lolmonitor/internal/utils"
 )
 
 const TEST_TASK_NAME = "test_lolmonitor_task"
@@ -29,23 +30,6 @@ func TestMain(m *testing.M) {
 
 // test internal functions
 
-func TestGetCurrentPath(t *testing.T) {
-	// Get the current path
-	exePath, err := getCurrentPath()
-	if err != nil {
-		t.Errorf("Error getting current path: %v", err)
-	}
-
-	// Verify the path matches the absolute path of this test file
-	expectedPath, err := filepath.Abs(os.Args[0])
-	if err != nil {
-		t.Errorf("Error getting absolute path of test file: %v", err)
-	}
-	if exePath != expectedPath {
-		t.Errorf("Expected path %s, but got %s", expectedPath, exePath)
-	}
-}
-
 // note you can manually run these tests out of order
 // to gain confidence the functions actually work
 // (e.g. run TestAddToStartup > TestStartupEntryNoExists to make it fail)
@@ -53,7 +37,7 @@ func TestGetCurrentPath(t *testing.T) {
 // and observe the task being created and removed as you run each test manually
 
 func TestAddToStartup(t *testing.T) {
-	exePath, err := getCurrentPath()
+	exePath, err := utils.GetCurrentPath()
 	if err != nil {
 		t.Errorf("Error getting current path: %v", err)
 		return

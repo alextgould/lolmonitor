@@ -4,29 +4,15 @@ package startup
 import (
 	"fmt"
 	"log/slog"
-	"os"
-	"path/filepath"
 
 	"golang.org/x/sys/windows/registry"
 
 	"github.com/alextgould/lolmonitor/internal/interfaces/notifications"
+	"github.com/alextgould/lolmonitor/internal/utils"
 )
 
 // const but want to change it in _test.go
 var TASK_NAME = "lolmonitor"
-
-// get the current path of the executable
-func getCurrentPath() (string, error) {
-	exePath, err := os.Executable()
-	if err != nil {
-		return "", err
-	}
-	exePath, err = filepath.Abs(exePath)
-	if err != nil {
-		return "", err
-	}
-	return exePath, nil
-}
 
 // create registry key
 func addToStartup(taskName, exePath string) error {
@@ -96,7 +82,7 @@ func ConfirmLoadOnStartup() error {
 	}
 
 	// get location of .exe
-	exePath, err := getCurrentPath()
+	exePath, err := utils.GetCurrentPath()
 	if err != nil {
 		slog.Error("an error occurred while getting the current exe path")
 		return err
