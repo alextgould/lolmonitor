@@ -45,11 +45,11 @@ func Monitor(cfg config.Config, events chan window.ProcessEvent, pr window.Proce
 		// update the config if it has been modified recently
 		configUpdated, err := config.CheckConfigUpdated("", lastChecked)
 		if err != nil {
-			log.Printf("Error checking if config was updated: %v", err)
+			log.Printf("Failed to check if config updated. %v", err)
 		} else if configUpdated {
 			cfg, err = config.LoadConfig("")
 			if err != nil {
-				log.Panicf("Failed to load config: %v", err)
+				log.Panicf("Failed to load config. %v", err)
 			}
 			log.Print("Config values updated as file has been modified since the last event")
 		}

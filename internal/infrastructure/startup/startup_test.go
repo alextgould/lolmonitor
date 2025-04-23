@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 // and observe the task being created and removed as you run each test manually
 
 func TestAddToStartup(t *testing.T) {
-	exePath, err := utils.GetCurrentPath()
+	exePath, err := utils.GetCurrentPath(true)
 	if err != nil {
 		t.Errorf("Error getting current path: %v", err)
 		return

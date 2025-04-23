@@ -82,7 +82,7 @@ func ConfirmLoadOnStartup() error {
 	}
 
 	// get location of .exe
-	exePath, err := utils.GetCurrentPath()
+	exePath, err := utils.GetCurrentPath(true)
 	if err != nil {
 		slog.Error("an error occurred while getting the current exe path")
 		return err

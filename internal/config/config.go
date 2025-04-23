@@ -9,11 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/alextgould/lolmonitor/internal/interfaces/notifications"
 	"github.com/alextgould/lolmonitor/internal/utils"
 )
-
-const CONFIG_FILE = "config.json"
 
 type Config struct {
 	BreakBetweenGamesMinutes    int    `json:"breakBetweenGamesMinutes"`
@@ -38,31 +35,48 @@ var defaultConfig = Config{
 	LoadOnStartup:               true,
 }
 
-func SaveConfig(filename string, cfg Config) error {
+// if filename is not explicitly specified (i.e. ""), use the executable path and "config.json"
+func defaultPath(filename string) (string, error) {
 	if filename == "" {
-		filename = CONFIG_FILE
+		exePath, err := utils.GetCurrentPath(false)
+		if err != nil {
+			return "", err
+		}
+		filename = filepath.Join(exePath, "config.json")
+	}
+	return filename, nil
+}
+
+func SaveConfig(filename string, cfg Config) error {
+
+	// use default path and filename unless specified explicitly
+	filename, err := defaultPath(filename)
+	if err != nil {
+		return err
 	}
 
+	// create config file
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
+	// save cfg in json format
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ") // Pretty-print JSON
 	return encoder.Encode(cfg)
 }
 
 func LoadConfig(filename string) (Config, error) {
-	if filename == "" {
-		exePath, err := utils.GetCurrentPath()
-		if err != nil {
-			return Config{}, fmt.Errorf("failed to get executable path: %v", err)
-		}
-		filename = filepath.Join(exePath, CONFIG_FILE)
+
+	// use default path and filename unless specified explicitly
+	filename, err := defaultPath(filename)
+	if err != nil {
+		return Config{}, err
 	}
 
+	// open file, creating a new config file if one is not found
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Println("Config file not found, creating default config...")
@@ -71,9 +85,10 @@ func LoadConfig(filename string) (Config, error) {
 	}
 	defer file.Close()
 
+	// load json into config
 	decoder := json.NewDecoder(file)
-	config := defaultConfig       // create a config
-	err = decoder.Decode(&config) // decode the JSON into the new config
+	config := defaultConfig
+	err = decoder.Decode(&config)
 	if err != nil {
 		log.Printf("Error when decoding config file: %v", err)
 		log.Println("Invalid config file, resetting to default values...")
@@ -86,19 +101,18 @@ func LoadConfig(filename string) (Config, error) {
 
 // Check if config file has been updated more recently than time value
 func CheckConfigUpdated(filename string, t time.Time) (bool, error) {
-	if filename == "" {
-		filename = CONFIG_FILE
+
+	// use default path and filename unless specified explicitly
+	filename, err := defaultPath(filename)
+	if err != nil {
+		return false, err
 	}
 
+	// check if date modified is after time t
 	fileInfo, err := os.Stat(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
-
-			// TEMP - getting default 30 sec delay when I have lobbyCloseDelaySeconds set to 15 sec in config - why??
-			notification_text := fmt.Sprintf("File does not exist: %s", filename)
-			notifications.SendNotification("Unable to find config file", notification_text, false)
-
-			return false, fmt.Errorf("file does not exist: %s", filename)
+			return false, fmt.Errorf("unable to find config file: %s", filename)
 		}
 		return false, err
 	}
