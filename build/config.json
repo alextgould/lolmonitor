@@ -3,7 +3,7 @@
   "breakBetweenSessionsMinutes": 60,
   "gamesPerSession": 3,
   "minimumGameDurationMinutes": 15,
-  "lobbyCloseDelaySeconds": 15,
+  "lobbyCloseDelaySeconds": 30,
   "dailyStartTime": "04:00",
   "dailyEndTime": "23:00",
   "loadOnStartup": true
