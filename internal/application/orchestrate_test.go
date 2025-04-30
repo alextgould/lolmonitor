@@ -134,3 +134,33 @@ func TestIsLobbyBan(t *testing.T) {
 		t.Errorf("Expected lobby to be banned due to endOfBreak")
 	}
 }
+
+// manual test to replicate notification after hours
+// actually this all seems to be working fine
+// func TestPostGameAfterHours(t *testing.T) {
+// 	cfg := config.Config{
+// 		MinimumGameDurationMinutes:  10,
+// 		GamesPerSession:             3,
+// 		BreakBetweenSessionsMinutes: 30,
+// 		BreakBetweenGamesMinutes:    120,
+// 		DailyEndTime:                "01:00",
+// 	}
+
+// 	sessionGames := 0
+// 	// currentTime := time.Date(2023, 10, 1, 23, 0, 0, 0, time.UTC) // 11:00 PM
+// 	currentTime := time.Now()
+// 	gameStartTime := currentTime.Add(-45 * time.Minute)
+// 	gameEndTime := currentTime
+
+// 	newSessionGames, endOfBreak, breakDuration := postGame(cfg, currentTime, gameStartTime, gameEndTime, sessionGames)
+// 	log.Printf("newSessionGames is %v", newSessionGames)
+// 	log.Printf("endOfBreak is %v", endOfBreak)
+// 	log.Printf("breakDuration is %v", breakDuration)
+// 	// display the lobby blocked notification using this endOfBreak value
+// 	// says "try again in -830219 minutes at 11:06pm"
+// 	// suggests an issue with math.Ceil(time.Until(endOfBreak).Minutes())
+// 	notifications.LobbyBlocked(endOfBreak)
+// 	t.Fail() // show time values in log
+// 	// 2025/04/30 22:04:49 endOfBreak is 2023-10-01 23:05:00 +0000 UTC
+// 	// 2025/04/30 22:04:49 breakDuration is 5m0s
+// }
