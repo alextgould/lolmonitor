@@ -51,11 +51,11 @@ func EndOfGame(endOfBreak time.Time, sessionGames, gamesPerSession int) {
 		notification_title = fmt.Sprintf("Game over! That's game %d of %d.", sessionGames, gamesPerSession)
 		notification_text = fmt.Sprintf("Take a short break to reset and come back in %.0f minutes at %v",
 			math.Ceil(time.Until(endOfBreak).Minutes()),
-			endOfBreak.Format("3:04pm"))
+			endOfBreak.Truncate(time.Minute).Add(time.Minute).Format("3:04pm"))
 	} else {
 		notification_title = fmt.Sprintf("Session over! That's game %d of %d.", gamesPerSession, gamesPerSession)
 		notification_text = fmt.Sprintf("Take a break to recover and come back some time after %v)",
-			endOfBreak.Format("3:04pm"))
+			endOfBreak.Truncate(time.Minute).Add(time.Minute).Format("3:04pm"))
 	}
 	SendNotification(notification_title, notification_text, true)
 }
@@ -64,6 +64,6 @@ func LobbyBlocked(endOfBreak time.Time) {
 	notification_title := "You're on a break!"
 	notification_text := fmt.Sprintf("Try again in %.0f minutes at %v",
 		math.Ceil(time.Until(endOfBreak).Minutes()),
-		endOfBreak.Format("3:04pm"))
+		endOfBreak.Truncate(time.Minute).Add(time.Minute).Format("3:04pm"))
 	SendNotification(notification_title, notification_text, false)
 }
